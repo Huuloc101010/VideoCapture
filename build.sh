@@ -1,1 +1,1 @@
-g++-13 -std=c++20 ./src/main.cpp -I.
+g++-13 -std=c++20 *.cpp */*.cpp -I. -I./* -I./src
