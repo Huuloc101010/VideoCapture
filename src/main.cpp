@@ -9,6 +9,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <linux/videodev2.h>
+#include "Log.hpp"
 
 // struct for mmap
 struct VideoBuffer {
@@ -69,6 +70,9 @@ int main() {
     constexpr std::string_view dev_name = "/dev/video0";
     constexpr int width = 640;
     constexpr int height = 480;
+    LOGI("test LOGI() {}", std::string("abc"), 123, "1111");
+    LOGW("test LOGI() {}", std::string("abc"), 123, "1111");
+    LOGE("test LOGI() {}", std::string("abc"), 123, "1111");
 
     // 1. Open v4l2
     int fd = open(dev_name.data(), O_RDWR);
@@ -156,7 +160,7 @@ int main() {
     if (save_ppm("capture.ppm", rgb_data, width, height)) {
         std::cout << "Saved file ppm success: capture.ppm\n";
     } else {
-        std::cerr << "Errir write file PPM!\n";
+        std::cerr << "Error write file PPM!\n";
         return 1;
     }
 
