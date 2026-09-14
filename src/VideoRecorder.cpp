@@ -1,5 +1,6 @@
 #include "VideoRecorder.h"
 #include "Log.h"
+#include "Utils.h"
 
 // struct for mmap
 struct VideoBuffer {
@@ -40,21 +41,6 @@ std::vector<uint8_t> VideoRecorder::convert_yuyv_to_rgb24(const uint8_t* yuyv, i
     }
 
     return rgb;
-}
-
-// RGB24 -> PPM
-bool VideoRecorder::save_ppm(const std::string& filename, const std::vector<uint8_t>& rgb, int width, int height)
-{
-    std::ofstream file(filename, std::ios::binary);
-    if (!file.is_open()) return false;
-
-    // Head of PPM format Binary RGB (P6)
-    file << "P6\n" << width << " " << height << "\n255\n";
-
-    // Write file
-    file.write(reinterpret_cast<const char*>(rgb.data()), rgb.size());
-    file.close();
-    return true;
 }
 
 void VideoRecorder::Capture()
@@ -149,9 +135,12 @@ void VideoRecorder::Capture()
     ioctl(fd, VIDIOC_STREAMOFF, &type);
 
     // 9. Save RGB24 intp ppm
-    if (save_ppm("capture.ppm", rgb_data, width, height)) {
+    if(Utils::GetInstance().SavePPM("capture.ppm", rgb_data, width, height))
+    {
         std::cout << "Saved file ppm success: capture.ppm\n";
-    } else {
+    }
+    else
+    {
         std::cerr << "Error write file PPM!\n";
         return;
     }

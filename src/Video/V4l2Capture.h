@@ -1,0 +1,140 @@
+#ifndef V4L2_CAPTURE_H
+#define V4L2_CAPTURE_H
+
+#include <string>
+#include <memory>
+#include <atomic>
+#include <format>
+#include "Log.h"
+
+extern "C"
+{
+#include <libavdevice/avdevice.h>
+#include <libavformat/avformat.h>
+#include <libavutil/dict.h>
+#include <libavutil/error.h>
+}
+
+class V4l2Capture
+{
+public:
+    V4l2Capture() = default;
+    ~V4l2Capture() { stop(); }
+
+    V4l2Capture(const V4l2Capture&) = delete;
+    V4l2Capture& operator=(const V4l2Capture&) = delete;
+
+    bool Start(const std::string& device, const int width, const int height, const int fps)
+    {
+        PathDevice = device;
+        is_running_.store(false);
+
+        // Đăng ký toàn bộ thiết bị (FFmpeg mới có thể là no-op nhưng gọi để an toàn)
+        avdevice_register_all();
+
+        AVInputFormat* input_fmt = av_find_input_format("video4linux2");
+        if (!input_fmt) {
+            LOGE("Không tìm thấy v4l2 input format!");
+            return false;
+        }
+
+        AVDictionary* opts = nullptr;
+        std::string res_str = std::format("{}x{}", width, height);
+        av_dict_set(&opts, "video_size", res_str.c_str(), 0);
+        std::string fps_str = std::format("{}", fps);
+        av_dict_set(&opts, "framerate", fps_str.c_str(), 0);
+        // Có thể ép pixel format nếu muốn (vd: "yuyv422", "mjpeg", v.v.)
+        // av_dict_set(&opts, "pixel_format", "yuyv422", 0);
+
+        int ret = avformat_open_input(&fmt_ctx_, PathDevice.c_str(), input_fmt, &opts);
+        av_dict_free(&opts);
+
+        if (ret < 0) {
+            char errbuf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(ret, errbuf, sizeof(errbuf));
+            LOGE("Không thể mở thiết bị {}: {}", PathDevice, errbuf);
+            return false;
+        }
+
+        if (avformat_find_stream_info(fmt_ctx_, nullptr) < 0) {
+            LOGE("Không tìm thấy stream info cho {}", PathDevice);
+            close();
+            return false;
+        }
+
+        video_stream_index_ = -1;
+        for (unsigned int i = 0; i < fmt_ctx_->nb_streams; ++i) {
+            if (fmt_ctx_->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+                video_stream_index_ = i;
+                break;
+            }
+        }
+
+        if (video_stream_index_ == -1) {
+            LOGE("Không tìm thấy video stream trên {}", PathDevice);
+            close();
+            return false;
+        }
+
+        LOGI("V4L2 khởi tạo thành công: {} ({}, {} fps)", PathDevice, res_str, fps);
+        return true;
+    }
+
+    bool start() {
+        if (!fmt_ctx_) {
+            LOGE("Chưa gọi init() hoặc init thất bại!");
+            return false;
+        }
+        is_running_.store(true);
+        return true;
+    }
+
+    // Đọc frame (block cho đến khi có packet video tiếp theo)
+    bool read_packet(AVPacket* pkt) {
+        if (!is_running_.load() || !fmt_ctx_) return false;
+
+        while (is_running_.load()) {
+            int ret = av_read_frame(fmt_ctx_, pkt);
+            if (ret < 0) {
+                if (ret == AVERROR_EOF) {
+                    LOGW("EOF từ thiết bị v4l2");
+                } else if (ret != AVERROR(EAGAIN)) {
+                    char errbuf[AV_ERROR_MAX_STRING_SIZE];
+                    av_strerror(ret, errbuf, sizeof(errbuf));
+                    LOGE("Lỗi đọc frame v4l2: {}", errbuf);
+                }
+                return false;
+            }
+
+            if (pkt->stream_index == video_stream_index_) {
+                return true;
+            }
+            av_packet_unref(pkt);
+        }
+        return false;
+    }
+
+    void stop() {
+        is_running_.store(false);
+        close();
+    }
+
+    AVStream* get_stream() const {
+        return (fmt_ctx_ && video_stream_index_ >= 0) ? fmt_ctx_->streams[video_stream_index_] : nullptr;
+    }
+
+private:
+    void close() {
+        if (fmt_ctx_) {
+            avformat_close_input(&fmt_ctx_);
+            fmt_ctx_ = nullptr;
+        }
+    }
+
+    std::string PathDevice;
+    AVFormatContext* fmt_ctx_ = nullptr;
+    int video_stream_index_ = -1;
+    std::atomic<bool> is_running_{false};
+};
+
+#endif // V4L2_CAPTURE_H
