@@ -118,3 +118,77 @@ void V4l2Capture::Stop()
 {
     Close();
 }
+
+UniqueFramePtr V4l2Capture::ConvertPacketToFrame(UniquePacketPtr Packet)
+{
+    if (Packet == nullptr)
+    {
+        LOGE("Packet is nullptr");
+        return {};
+    }
+
+    AVStream* Stream = FormatContext->streams[VideoStreamIndex];
+
+    const int Width  = Stream->codecpar->width;
+    const int Height = Stream->codecpar->height;
+
+    const AVPixelFormat Format =
+        static_cast<AVPixelFormat>(Stream->codecpar->format);
+
+    if (Format != AV_PIX_FMT_YUYV422)
+    {
+        LOGW("Don't support this packet, Support YUYV422 only");
+        return {};
+    }
+
+    UniqueFramePtr Frame(av_frame_alloc());
+
+    if (Frame == nullptr)
+    {
+        LOGE("Allocate fail");
+        return {};
+    }
+
+    Frame->format = Format;
+    Frame->width  = Width;
+    Frame->height = Height;
+
+    int Ret = av_frame_get_buffer(Frame.get(), 32);
+
+    if (Ret < 0)
+    {
+        LOGE("av_frame_get_buffer failed");
+        return {};
+    }
+
+    // YUYV422 = 2 bytes / pixel
+    const int SrcLinesize[4] =
+    {
+        Width * 2,
+        0,
+        0,
+        0
+    };
+
+    const uint8_t* SrcData[4] =
+    {
+        Packet->data,
+        nullptr,
+        nullptr,
+        nullptr
+    };
+
+    av_image_copy(
+        Frame->data,
+        Frame->linesize,
+        SrcData,
+        SrcLinesize,
+        Format,
+        Width,
+        Height
+    );
+
+    Frame->pts = Packet->pts;
+
+    return Frame;
+}
