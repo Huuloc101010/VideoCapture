@@ -6,6 +6,7 @@
 #include <atomic>
 #include <format>
 #include "Log.h"
+#include "Define.h"
 
 extern "C"
 {
@@ -24,7 +25,7 @@ public:
     V4l2Capture(const V4l2Capture&) = delete;
     V4l2Capture& operator=(const V4l2Capture&) = delete;
 
-    bool Start(const std::string& device, const int width, const int height, const int fps);
+    bool Config(const V4l2CaptureConfig& Config);
 
     bool start();
 

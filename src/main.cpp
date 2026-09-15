@@ -2,6 +2,7 @@
 #include "V4l2Capture.h"
 #include "Utils.h"
 #include "ColorConvert.h"
+#include "Define.h"
 
 
 int main()
@@ -13,7 +14,8 @@ int main()
     constexpr int width = 640;
     constexpr int height = 480;
     V4l2Capture Capture;
-    Capture.Start("/dev/video0", width, height, 30);
+    V4l2CaptureConfig Config = {"/dev/video0", width, height, 30};
+    Capture.Config(Config);
     Capture.start();
     AVPacket* packet = av_packet_alloc();
     Capture.read_packet(&packet);

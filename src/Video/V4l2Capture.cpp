@@ -5,9 +5,9 @@ V4l2Capture::~V4l2Capture()
     stop();
 }
 
-bool V4l2Capture::Start(const std::string& device, const int width, const int height, const int fps)
+bool V4l2Capture::Config(const V4l2CaptureConfig& Config)
 {
-    PathDevice = device;
+    PathDevice = Config.Device;
     is_running_.store(false);
 
     // Đăng ký toàn bộ thiết bị (FFmpeg mới có thể là no-op nhưng gọi để an toàn)
@@ -20,9 +20,9 @@ bool V4l2Capture::Start(const std::string& device, const int width, const int he
     }
 
     AVDictionary* opts = nullptr;
-    std::string res_str = std::format("{}x{}", width, height);
+    std::string res_str = std::format("{}x{}", Config.Width, Config.Heigh);
     av_dict_set(&opts, "video_size", res_str.c_str(), 0);
-    std::string fps_str = std::format("{}", fps);
+    std::string fps_str = std::format("{}", Config.FPS);
     av_dict_set(&opts, "framerate", fps_str.c_str(), 0);
     // Có thể ép pixel format nếu muốn (vd: "yuyv422", "mjpeg", v.v.)
     // av_dict_set(&opts, "pixel_format", "yuyv422", 0);
@@ -57,7 +57,7 @@ bool V4l2Capture::Start(const std::string& device, const int width, const int he
         return false;
     }
 
-    LOGI("V4L2 khởi tạo thành công: {} ({}, {} fps)", PathDevice, res_str, fps);
+    LOGI("V4L2 khởi tạo thành công: {} ({}, {} fps)", PathDevice, res_str, Config.FPS);
     return true;
 }
 
