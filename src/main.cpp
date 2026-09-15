@@ -16,9 +16,8 @@ int main()
     V4l2Capture Capture;
     V4l2CaptureConfig Config = {"/dev/video0", width, height, 30};
     Capture.Config(Config);
-    Capture.start();
-    AVPacket* packet = av_packet_alloc();
-    Capture.read_packet(&packet);
+    //AVPacket* packet = av_packet_alloc();
+    UniquePacketPtr packet = Capture.ReadPacket();
     std::cout << packet->size << std::endl;
     std::vector<uint8_t> rgb(packet->size);
     for(int i = 0; i < packet->size; ++i)

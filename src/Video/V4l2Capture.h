@@ -27,23 +27,18 @@ public:
 
     bool Config(const V4l2CaptureConfig& Config);
 
-    bool start();
-
-    // Đọc frame (block cho đến khi có packet video tiếp theo)
-    bool read_packet(AVPacket** pkt);
+    // Read 1 frame in v4l2
+    UniquePacketPtr ReadPacket();
     
-
-    void stop();
-    AVStream* get_stream();
+    void Stop();
+    AVStream* GetStream();
 
 private:
-    void close();
+    void Close();
     
-
     std::string PathDevice;
-    AVFormatContext* fmt_ctx_ = nullptr;
-    int video_stream_index_ = -1;
-    std::atomic<bool> is_running_{false};
+    AVFormatContext* FormatContext = nullptr;
+    int VideoStreamIndex = -1;
 };
 
 #endif // V4L2_CAPTURE_H
