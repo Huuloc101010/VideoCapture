@@ -7,6 +7,7 @@
 #include <format>
 #include "Log.h"
 #include "Define.h"
+#include "ColorConvert.h"
 
 extern "C"
 {
@@ -31,15 +32,27 @@ public:
     UniquePacketPtr ReadPacket();
     UniqueFramePtr ConvertPacketToFrame(UniquePacketPtr Packet);
     
-    void Stop();
     AVStream* GetStream();
+    void Close();
 
 private:
-    void Close();
+    bool FFmpegConfig();
+    bool V4l2NativeConfig();
+    UniquePacketPtr ReadPacketFromFFmpeg();
+    UniquePacketPtr ReadPacketFromV4l2();
+
+    // FFmpeg Zone
+    AVFormatContext*         m_FormatContext = nullptr;
+    V4l2CaptureConfig        m_Config;
+    int                      m_VideoStreamIndex = -1;
+    // end FFmpeg Zone
     
-    std::string PathDevice;
-    AVFormatContext* FormatContext = nullptr;
-    int VideoStreamIndex = -1;
+    // V4l2 Zone
+    int                      m_V4l2NativeFD = -1;
+    VideoBuffer              m_VideoBuffer;
+    v4l2_buffer              m_V4l2Config;
+    // end V4l2 Zone
+
 };
 
 #endif // V4L2_CAPTURE_H

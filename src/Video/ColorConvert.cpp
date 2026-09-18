@@ -1,7 +1,7 @@
 #include <algorithm>
 #include "ColorConvert.h"
 
-std::vector<uint8_t> ColorConvert::YUV422ToRGB24(std::vector<uint8_t>  yuyv, int width, int height)
+std::vector<uint8_t> ColorConvert::YUV422ToRGB24(const std::vector<uint8_t>&  yuyv, int width, int height)
 {
     std::vector<uint8_t> rgb(width * height * 3);
     
@@ -35,3 +35,4 @@ std::vector<uint8_t> ColorConvert::YUV422ToRGB24(std::vector<uint8_t>  yuyv, int
 
     return rgb;
 }
+

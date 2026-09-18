@@ -1,12 +1,8 @@
 #include "VideoRecorder.h"
 #include "Log.h"
 #include "Utils.h"
+#include "Define.h"
 
-// struct for mmap
-struct VideoBuffer {
-    void* start{nullptr};
-    size_t length{0};
-};
 
 // Function to convert YUYV to RGB24
 std::vector<uint8_t> VideoRecorder::convert_yuyv_to_rgb24(const uint8_t* yuyv, int width, int height) {
@@ -126,7 +122,7 @@ void VideoRecorder::Capture()
         return;
     }
 
-    std::cout << "Catured , capacity: " << buf.bytesused << " bytes.\n";
+    LOGI("Catured, capacity {} byte", buf.bytesused);
 
     // 7. Convert raw YUYV from mmap pointer to RGB24
     auto rgb_data = convert_yuyv_to_rgb24(static_cast<const uint8_t*>(video_buf.start), width, height);
