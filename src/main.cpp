@@ -41,6 +41,6 @@ int main()
     }
     ColorConvert Convert;
     std::vector<uint8_t> Ret = Convert.YUV422ToRGB24(rgb,  width, height);
-    Utils::GetInstance().SavePPM("abc.ppm", Ret, width, height);
+    Utils::GetInstance().SavePPM("tmp/abc.ppm", Ret, width, height);
     return 0;
 }
