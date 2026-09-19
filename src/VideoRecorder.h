@@ -18,7 +18,6 @@ class VideoRecorder
 public:
     VideoRecorder() = default;
     ~VideoRecorder() = default;
-    std::vector<uint8_t> convert_yuyv_to_rgb24(const uint8_t* yuyv, int width, int height);
     
     void Capture();
 };

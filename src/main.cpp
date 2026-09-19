@@ -12,7 +12,7 @@ int main()
     CaptureType type = CaptureType::V4L2_NATIVE;
     CaptureType type2 = CaptureType::FFMPEG_CAPTURE;
     V4l2Capture Capture;
-    V4l2CaptureConfig Config = {type, "/dev/video0", width, height, 30, AV_PIX_FMT_YUYV422};
+    V4l2CaptureConfig Config = {type2, "/dev/video0", width, height, 30, AV_PIX_FMT_YUYV422};
     LOGW("type {}", (int)type);
     if(Capture.Config(Config) == false)
     {
