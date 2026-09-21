@@ -30,8 +30,6 @@ public:
 
     // Read 1 frame in v4l2
     UniquePacketPtr ReadPacket();
-    UniqueFramePtr ConvertPacketToFrame(UniquePacketPtr Packet);
-    
     AVStream* GetStream();
     void Close();
 

@@ -12,6 +12,7 @@ extern "C"
     #include <libavcodec/avcodec.h>
     #include <libavformat/avformat.h>
     #include <libswresample/swresample.h>
+    #include <libswscale/swscale.h>
 }
 
 enum class CaptureType : uint8_t
@@ -28,7 +29,13 @@ struct V4l2CaptureConfig
     int FPS;
     AVPixelFormat PixelFormat;
 };
-//
+struct ColorConvertConfig
+{
+    int Width;
+    int Heigh;
+    AVPixelFormat PixelFormat;
+};
+
 // struct for mmap
 struct VideoBuffer
 {
