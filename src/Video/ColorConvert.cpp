@@ -6,6 +6,12 @@ ColorConvert::ColorConvert(ColorConvertConfig Config)
     m_Config = Config;
 }
 
+ColorConvert::~ColorConvert()
+{
+    sws_freeContext(m_SwsContext);
+    m_SwsContext = nullptr;
+}
+
 std::vector<uint8_t> ColorConvert::YUV422ToRGB24(const std::vector<uint8_t>&  yuyv, int width, int height)
 {
     std::vector<uint8_t> rgb(width * height * 3);
@@ -181,32 +187,31 @@ UniqueFramePtr ColorConvert::ConvertYUV422ToYUV420(UniqueFramePtr Frame)
         return nullptr;
     }
 
-    // ---------------------------------------------------------
-    // YUYV422 -> YUV420P
-    // ---------------------------------------------------------
-
-    SwsContext* sws = sws_getContext(
-        Frame->width,
-        Frame->height,
-        AV_PIX_FMT_YUYV422,
-
-        YUV420->width,
-        YUV420->height,
-        AV_PIX_FMT_YUV420P,
-        SWS_BILINEAR,
-        nullptr,
-        nullptr,
-        nullptr
-    );
-
-    if(sws == nullptr)
+    if(m_SwsContext == nullptr)
     {
-        LOGE("sws_getContext failed");
+        // YUV422 -> YUV420P
+        m_SwsContext = sws_getContext(
+            Frame->width,
+            Frame->height,
+            AV_PIX_FMT_YUYV422,
+
+            YUV420->width,
+            YUV420->height,
+            AV_PIX_FMT_YUV420P,
+            SWS_BILINEAR,
+            nullptr,
+            nullptr,
+            nullptr
+        );
+    }
+    if(m_SwsContext == nullptr)
+    {
+        LOGE("m_SwsContext failed");
         return nullptr;
     }
 
     const int scaledHeight = sws_scale(
-        sws,
+        m_SwsContext,
         Frame->data,
         Frame->linesize,
 
@@ -220,14 +225,9 @@ UniqueFramePtr ColorConvert::ConvertYUV422ToYUV420(UniqueFramePtr Frame)
     if (scaledHeight != YUV420->height)
     {
         LOGE("sws_scale failed: {}/{}", scaledHeight, YUV420->height);
-
-        sws_freeContext(sws);
         return nullptr;
     }
 
     YUV420->pts = Frame->pts;
-
-    sws_freeContext(sws);
-
     return YUV420;
 }
