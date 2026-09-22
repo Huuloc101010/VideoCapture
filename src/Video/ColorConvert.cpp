@@ -112,10 +112,10 @@ UniqueFramePtr ColorConvert::ConvertPacketToFrame(UniquePacketPtr Packet)
 
     Frame->format = m_Config.PixelFormat;
     Frame->width  = m_Config.Width;
-    Frame->height = m_Config.Heigh;
+    Frame->height = m_Config.Height;
     LOGI("Format {}", (int)m_Config.PixelFormat);
     LOGI("Width {}", m_Config.Width);
-    LOGI("Heigh {}", m_Config.Heigh);
+    LOGI("Heigh {}", m_Config.Height);
     int Ret = av_frame_get_buffer(Frame.get(), 32);
 
     if (Ret < 0)
@@ -148,7 +148,7 @@ UniqueFramePtr ColorConvert::ConvertPacketToFrame(UniquePacketPtr Packet)
         SrcLinesize,
         m_Config.PixelFormat,
         m_Config.Width,
-        m_Config.Heigh
+        m_Config.Height
     );
 
     Frame->pts = Packet->pts;

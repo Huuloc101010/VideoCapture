@@ -41,7 +41,7 @@ bool V4l2Capture::FFmpegConfig()
     }
 
     AVDictionary* Opts = nullptr;
-    std::string res_str = std::format("{}x{}", m_Config.Width, m_Config.Heigh);
+    std::string res_str = std::format("{}x{}", m_Config.Width, m_Config.Height);
     av_dict_set(&Opts, "video_size", res_str.c_str(), 0);
     std::string fps_str = std::format("{}", m_Config.FPS);
     av_dict_set(&Opts, "framerate", fps_str.c_str(), 0);
@@ -106,7 +106,7 @@ bool V4l2Capture::V4l2NativeConfig()
     v4l2_format fmt{};
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     fmt.fmt.pix.width = m_Config.Width;
-    fmt.fmt.pix.height = m_Config.Heigh;
+    fmt.fmt.pix.height = m_Config.Height;
     fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
     fmt.fmt.pix.field = V4L2_FIELD_NONE;
 

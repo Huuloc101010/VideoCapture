@@ -13,6 +13,7 @@ extern "C"
     #include <libavformat/avformat.h>
     #include <libswresample/swresample.h>
     #include <libswscale/swscale.h>
+    #include <libavutil/opt.h>
 }
 
 enum class CaptureType : uint8_t
@@ -20,21 +21,38 @@ enum class CaptureType : uint8_t
     FFMPEG_CAPTURE,
     V4L2_NATIVE,
 };
+
+enum class MediaType : uint8_t
+{
+    VIDEO,
+    AUDIO,
+    SUBTITLE,
+    OTHER,
+};
+
 struct V4l2CaptureConfig
 {
     CaptureType Type;
     std::string Device;
     int Width;
-    int Heigh;
+    int Height;
     int FPS;
     AVPixelFormat PixelFormat;
 };
 struct ColorConvertConfig
 {
     int Width;
-    int Heigh;
+    int Height;
     AVPixelFormat PixelFormat;
 };
+
+struct EncoderConfig
+{
+    int Width;
+    int Height;
+    MediaType Type;
+};
+
 
 // struct for mmap
 struct VideoBuffer
@@ -75,6 +93,8 @@ public:
 using UniqueFramePtr      = std::unique_ptr<AVFrame, UniquePtrDeleterLevel2<AVFrame, av_frame_free>>;
 using UniquePacketPtr     = std::unique_ptr<AVPacket, UniquePtrDeleterLevel2<AVPacket, av_packet_free>>;
 using UniqueFormatContext = std::unique_ptr<AVFormatContext, UniquePtrDeleterLevel2<AVFormatContext, avformat_close_input>>;
+using UniqueCodecContext  = std::unique_ptr<AVCodecContext, UniquePtrDeleterLevel2<AVCodecContext, avcodec_free_context>>;
+using AVCodecPtr          = AVCodec *;
 
 template<typename T>
 class ScopeGuard
