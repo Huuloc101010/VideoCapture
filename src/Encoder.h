@@ -8,8 +8,8 @@
 class Encoder
 {
 public:
-    Encoder();
-    ~Encoder();
+    Encoder() = default;
+    ~Encoder() = default;
     virtual bool ConfigEncoder(EncoderConfig Config);
     std::vector<UniquePacketPtr> Encode(UniqueFramePtr Frame);
 

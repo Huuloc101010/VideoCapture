@@ -21,13 +21,15 @@ bool Encoder::ConfigEncoder(EncoderConfig Config)
     m_CodecContext->time_base = (AVRational){1, 30};
     m_CodecContext->framerate = (AVRational){30, 1};
     m_CodecContext->gop_size = 10;
-    m_CodecContext->max_b_frames = 1;
+    m_CodecContext->max_b_frames = 0;
     m_CodecContext->pix_fmt = AV_PIX_FMT_YUV420P;
+    int Ret = 0;
     if(m_Codec->id == AV_CODEC_ID_H264)
     {
         av_opt_set(m_CodecContext->priv_data, "preset", "slow", 0);
+        av_opt_set(m_CodecContext->priv_data, "tune", "zerolatency", 0);
     }
-    if(avcodec_open2(m_CodecContext.get(), m_Codec, NULL) == false)
+    if(avcodec_open2(m_CodecContext.get(), m_Codec, NULL) != 0)
     {
         LOGE("avcodec_open2() return false");
         return false;
@@ -44,8 +46,8 @@ std::vector<UniquePacketPtr> Encoder::Encode(UniqueFramePtr Frame)
         LOGE("Frame is nullptr");
         return VectorPacket;
     }
-    int Retval = avcodec_send_frame(m_CodecContext.get(), Frame.release());
-    if(Retval == false)
+    int Retval = avcodec_send_frame(m_CodecContext.get(), Frame.get());
+    if(Retval != 0)
     {
         LOGE("avcodec_send_frame() fail");
         return VectorPacket;
@@ -58,13 +60,13 @@ std::vector<UniquePacketPtr> Encoder::Encode(UniqueFramePtr Frame)
         Ret = avcodec_receive_packet(m_CodecContext.get(), Packet.get());
         if(Ret == AVERROR(EAGAIN) || Ret == AVERROR_EOF)
         {
-            LOGE("Ret == AVERROR(EAGAIN)");
-            return VectorPacket;
+            //LOGE("Ret == AVERROR(EAGAIN)");
+            break;
         }
         else if(Ret < 0)
         {
             LOGE("Error when encoding");
-            return VectorPacket;
+            break;
         }
         else
         {
@@ -72,5 +74,6 @@ std::vector<UniquePacketPtr> Encoder::Encode(UniqueFramePtr Frame)
         }
 
     }
+    //LOGW("OK, Get {} Packet", (int)VectorPacket.size());
     return VectorPacket;
 }
