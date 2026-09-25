@@ -1,9 +1,9 @@
 #include <algorithm>
 #include "ColorConvert.h"
 
-ColorConvert::ColorConvert(ColorConvertConfig Config)
+ColorConvert::ColorConvert(): m_SwsContext(nullptr)
 {
-    m_Config = Config;
+    
 }
 
 ColorConvert::~ColorConvert()
@@ -230,4 +230,10 @@ UniqueFramePtr ColorConvert::ConvertYUV422ToYUV420(UniqueFramePtr Frame)
 
     YUV420->pts = Frame->pts;
     return YUV420;
+}
+
+bool ColorConvert::ConfigColorConvert(ColorConvertConfig Config)
+{
+    m_Config = Config;
+    return true;
 }

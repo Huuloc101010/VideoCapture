@@ -9,7 +9,8 @@
 class ColorConvert
 {
 public:
-    ColorConvert(ColorConvertConfig Config);
+    ColorConvert();
+    bool ConfigColorConvert(ColorConvertConfig Config);
     ~ColorConvert();
     std::vector<uint8_t> YUV422ToRGB24(const std::vector<uint8_t>& yuyv, int width, int height);
     std::vector<uint8_t> YUV420ToRGB24(const std::vector<uint8_t>& yuv420, int width, int height);
