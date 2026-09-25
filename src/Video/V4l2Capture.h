@@ -40,7 +40,7 @@ private:
     UniquePacketPtr ReadPacketFromV4l2();
 
     // FFmpeg Zone
-    AVFormatContext*         m_FormatContext = nullptr;
+    UniqueFormatContext      m_FormatContext = nullptr;
     V4l2CaptureConfig        m_Config;
     int                      m_VideoStreamIndex = -1;
     // end FFmpeg Zone

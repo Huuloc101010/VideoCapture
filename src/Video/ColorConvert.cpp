@@ -103,7 +103,6 @@ UniqueFramePtr ColorConvert::ConvertPacketToFrame(UniquePacketPtr Packet)
     }
 
     UniqueFramePtr Frame(av_frame_alloc());
-
     if (Frame == nullptr)
     {
         LOGE("Allocate fail");

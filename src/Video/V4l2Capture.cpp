@@ -46,8 +46,14 @@ bool V4l2Capture::FFmpegConfig()
     std::string fps_str = std::format("{}", m_Config.FPS);
     av_dict_set(&Opts, "framerate", fps_str.c_str(), 0);
     av_dict_set(&Opts, "pixel_format", "yuyv422", 0);
-
-    int Retval = avformat_open_input(&m_FormatContext, m_Config.Device.c_str(), InputFormat, &Opts);
+    AVFormatContext* FormatContext = nullptr;
+    int Retval = avformat_open_input(&FormatContext, m_Config.Device.c_str(), InputFormat, &Opts);
+    m_FormatContext.reset(FormatContext);
+    if(m_FormatContext == nullptr)
+    {
+        LOGE("Format context is null");
+        return false;
+    }
     av_dict_free(&Opts);
 
     if(Retval < 0)
@@ -64,7 +70,7 @@ bool V4l2Capture::FFmpegConfig()
         return false;
     }
 
-    if (avformat_find_stream_info(m_FormatContext, nullptr) < 0)
+    if (avformat_find_stream_info(m_FormatContext.get(), nullptr) < 0)
     {
         LOGE("Can not find stream info {}", m_Config.Device);
         Close();
@@ -199,7 +205,7 @@ UniquePacketPtr V4l2Capture::ReadPacketFromFFmpeg()
 
     for(int i = 0; i < 5; ++i) // Try 5 time
     {
-        int Retval = av_read_frame(m_FormatContext, Packet.get());
+        int Retval = av_read_frame(m_FormatContext.get(), Packet.get());
         if (Retval)
         {
             if(Retval == AVERROR_EOF)
@@ -271,11 +277,6 @@ AVStream* V4l2Capture::GetStream()
 
 void V4l2Capture::Close()
 {
-    if (m_FormatContext)
-    {
-        avformat_close_input(&m_FormatContext);
-        m_FormatContext = nullptr;
-    }
     if(m_VideoBuffer.start)
     {
         munmap(m_VideoBuffer.start, m_VideoBuffer.length);

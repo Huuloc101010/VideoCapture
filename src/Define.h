@@ -84,6 +84,7 @@ public:
         if(Resource)
         {
             FreeFunction(&Resource);
+            Resource = nullptr;
         }
     }
 };
