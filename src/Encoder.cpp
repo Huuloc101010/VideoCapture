@@ -1,6 +1,6 @@
 #include "Encoder.h"
 
-bool Encoder::ConfigEncoder(EncoderConfig Config)
+bool Encoder::ConfigEncoder(const EncoderConfig& Config)
 {
     m_Codec = avcodec_find_encoder(AV_CODEC_ID_H264);
     if(m_Codec == nullptr)
@@ -41,11 +41,6 @@ bool Encoder::ConfigEncoder(EncoderConfig Config)
 std::vector<UniquePacketPtr> Encoder::Encode(UniqueFramePtr Frame)
 {
     std::vector<UniquePacketPtr> VectorPacket;
-    if(Frame == nullptr)
-    {
-        LOGE("Frame is nullptr");
-        return VectorPacket;
-    }
     int Retval = avcodec_send_frame(m_CodecContext.get(), Frame.get());
     if(Retval != 0)
     {
@@ -77,3 +72,9 @@ std::vector<UniquePacketPtr> Encoder::Encode(UniqueFramePtr Frame)
     //LOGW("OK, Get {} Packet", (int)VectorPacket.size());
     return VectorPacket;
 }
+
+const UniqueCodecContext& Encoder::GetVideoContext() const
+{
+    return m_CodecContext;
+}
+

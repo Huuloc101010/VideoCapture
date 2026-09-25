@@ -95,6 +95,17 @@ using UniquePacketPtr     = std::unique_ptr<AVPacket, UniquePtrDeleterLevel2<AVP
 using UniqueFormatContext = std::unique_ptr<AVFormatContext, UniquePtrDeleterLevel2<AVFormatContext, avformat_close_input>>;
 using UniqueCodecContext  = std::unique_ptr<AVCodecContext, UniquePtrDeleterLevel2<AVCodecContext, avcodec_free_context>>;
 using AVCodecPtr          = AVCodec *;
+using AVStreamPtr         = AVStream *;
+
+struct MuxerConfig
+{
+    int Width;
+    int Height;
+    AVCodecContext* VideoCodecContex;
+    AVCodecContext* AudioCodecContex;
+    std::string Extension;
+    std::string VideoName;
+};
 
 template<typename T>
 class ScopeGuard

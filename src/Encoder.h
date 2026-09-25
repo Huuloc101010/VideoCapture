@@ -10,8 +10,9 @@ class Encoder
 public:
     Encoder() = default;
     ~Encoder() = default;
-    virtual bool ConfigEncoder(EncoderConfig Config);
+    virtual bool ConfigEncoder(const EncoderConfig& Config);
     std::vector<UniquePacketPtr> Encode(UniqueFramePtr Frame);
+    const UniqueCodecContext& GetVideoContext() const;
 
 protected:
     UniqueCodecContext m_CodecContext = nullptr;

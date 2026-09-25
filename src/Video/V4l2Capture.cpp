@@ -87,6 +87,20 @@ bool V4l2Capture::FFmpegConfig()
         Close();
         return false;
     }
+    AVStream* Stream = m_FormatContext->streams[m_VideoStreamIndex];
+
+    LOGI(
+        "Actual stream: codec={}, resolution={}x{}, time_base={}/{}, avg_frame_rate={}/{}, r_frame_rate={}/{}",
+        "",
+        Stream->codecpar->width,
+        Stream->codecpar->height,
+        Stream->time_base.num,
+        Stream->time_base.den,
+        Stream->avg_frame_rate.num,
+        Stream->avg_frame_rate.den,
+        Stream->r_frame_rate.num,
+        Stream->r_frame_rate.den
+    );
 
     LOGI("V4L2 init success: {} ({}, {} fps)", m_Config.Device, res_str, m_Config.FPS);
     return true;
