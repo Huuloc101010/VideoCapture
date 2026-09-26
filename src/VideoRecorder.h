@@ -24,12 +24,17 @@ public:
     ~VideoRecorder() = default;
     void Config(const VideoRecorderConfig& Config);
     void Record();
+    void Stop();
 private:
+    void CheckTimeRecorded();
+    void FlushEncoder();
     V4l2Capture          m_V4l2Capture;
     Encoder              m_Encoder;
     Muxer                m_Muxer;
     ColorConvert         m_ColorConvert;
     VideoRecorderConfig  m_Config;
+    std::atomic<uint64_t> m_TimeRecord;
+    std::atomic<bool>     m_IsRunning;
 };
 
 #endif // VIDEO_RECORDER_H

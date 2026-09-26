@@ -12,7 +12,7 @@
 int main()
 {
     VideoRecorder Recorder;
-    Recorder.Config({"/dev/video0", "Video.mp4"});
+    Recorder.Config({"/dev/video0", "Video.mp4", {0,0,6}});
     Recorder.Record();
-    return 0; 
+    return 0;
 }

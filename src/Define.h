@@ -61,10 +61,18 @@ struct VideoBuffer
     size_t length{0};
 };
 
+struct TimeRecord
+{
+    int Hour;
+    int Minutes;
+    int Second;
+};
+
 struct VideoRecorderConfig
 {
     std::string PathDevice;
     std::string PathVideoOutput;
+    TimeRecord Time;
 };
 
 template<typename T, void(*FreeFunction)(T*)>
