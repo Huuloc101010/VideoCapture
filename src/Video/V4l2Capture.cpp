@@ -206,6 +206,9 @@ UniquePacketPtr V4l2Capture::ReadPacketFromFFmpeg()
     for(int i = 0; i < 5; ++i) // Try 5 time
     {
         int Retval = av_read_frame(m_FormatContext.get(), Packet.get());
+        // LOGE("TimeBase: {}/{}",  GetStream()->time_base.num, GetStream()->time_base.den);
+        // LOGE("ReadPacket Timebase {}", Utils::GetInstance().GetTimeStamp(GetStream()->time_base, Packet->pts));
+        // LOGE("Packet pts {}", Packet->pts);
         if (Retval)
         {
             if(Retval == AVERROR_EOF)
@@ -270,7 +273,7 @@ UniquePacketPtr V4l2Capture::ReadPacketFromV4l2()
     return Packet;
 }
 
-AVStream* V4l2Capture::GetStream()
+AVStreamPtr V4l2Capture::GetStream()
 {
     return (m_FormatContext && m_VideoStreamIndex >= 0) ? m_FormatContext->streams[m_VideoStreamIndex] : nullptr;
 }

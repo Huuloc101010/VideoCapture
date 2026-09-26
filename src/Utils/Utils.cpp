@@ -3,6 +3,11 @@
 #include <string>
 #include "Utils.h"
 
+Utils::Utils()
+{
+
+}
+
 Utils& Utils::GetInstance()
 {
     static Utils Instance;
@@ -21,4 +26,13 @@ bool Utils::SavePPM(const std::string& filename, const std::vector<uint8_t>& rgb
     file.write(reinterpret_cast<const char*>(rgb.data()), rgb.size());
     file.close();
     return true;
+}
+
+double Utils::GetTimeStamp(const AVRational& Rational, long long Time)
+{
+    if(Rational.num == 0)
+    {
+        return 0;
+    }
+    return ((double)Rational.num/Rational.den) * Time;
 }

@@ -30,7 +30,7 @@ public:
 
     // Read 1 frame in v4l2
     UniquePacketPtr ReadPacket();
-    AVStream* GetStream();
+    AVStreamPtr GetStream();
     void Close();
 
 private:

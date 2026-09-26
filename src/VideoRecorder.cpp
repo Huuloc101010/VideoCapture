@@ -46,15 +46,23 @@ void VideoRecorder::Record()
     m_Muxer.WriteHeader();
     auto Start = std::chrono::steady_clock::now();
     int64_t FirstPts = AV_NOPTS_VALUE;
-    for(int i = 0; i < 1000; ++i)
+    for(int i = 0; i < 200; ++i)
     {
-        LOGE("Before ReadPacket");
         UniquePacketPtr packet = m_V4l2Capture.ReadPacket();
-        LOGE("After ReadPacket");
         if(packet == nullptr)
         {
             LOGE("packet is null");
             return;
+        }
+        // Save first timstamp
+        if(FirstPts == AV_NOPTS_VALUE)
+        {
+            FirstPts = packet->pts;
+            packet->pts = 0;
+        }
+        else
+        {
+            packet->pts = packet->pts - FirstPts;
         }
         LOGI(
         "Frame {}, pts={}, size={}",
@@ -70,15 +78,12 @@ void VideoRecorder::Record()
             return;
         }
         UniqueFramePtr YUV420 = m_ColorConvert.ConvertYUV422ToYUV420(std::move(frame));
-        if (FirstPts == AV_NOPTS_VALUE)
-        {
-            FirstPts = YUV420->pts;
-        }
         if(YUV420 == nullptr)
         {
             LOGE("YUV420 is nullptr");
             return;
         }
+        LOGW("Frame pts {}", YUV420->pts);
         // Capture TB -> Encoder TB
         YUV420->pts = av_rescale_q(
             YUV420->pts,
@@ -86,7 +91,7 @@ void VideoRecorder::Record()
             m_Encoder.GetVideoContext()->time_base
         );
         std::vector<UniquePacketPtr> VectorEncoder;
-        if(i == 999)
+        if(i == 199)
         {
             VectorEncoder =  m_Encoder.Encode(nullptr);
 
@@ -138,13 +143,5 @@ void VideoRecorder::Record()
 
     LOGI("100 frames captured in {} seconds", Seconds);
     LOGI("Actual FPS = {}", 100.0 / Seconds);
-    //MuxerConfig MuxConfig = {width, height, std::ref(encoder.GetVideoContext()), nullptr, "mp4", "Video.mp4"};
-    
-    // for(auto& Packet : Total)
-    // {
-
-        
-    // }
     m_Muxer.WriteTrailer();
-    //fclose(File);
 }
