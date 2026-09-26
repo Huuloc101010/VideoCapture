@@ -14,6 +14,8 @@ extern "C"
     #include <libswresample/swresample.h>
     #include <libswscale/swscale.h>
     #include <libavutil/opt.h>
+    #include <libavdevice/avdevice.h>
+    #include <libavutil/avutil.h>
 }
 
 enum class CaptureType : uint8_t
@@ -39,6 +41,14 @@ struct V4l2CaptureConfig
     int FPS;
     AVPixelFormat PixelFormat;
 };
+
+struct AlsaCaptureConfig
+{
+    std::string Device;
+    std::string SampleRate;
+    std::string Channels;
+};
+
 struct ColorConvertConfig
 {
     int Width;

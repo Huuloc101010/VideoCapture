@@ -29,11 +29,30 @@ pkg_check_modules(FFMPEG REQUIRED
     libswscale
 )
 
+# Find all header files
+file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS
+    ${CMAKE_SOURCE_DIR}/src/*.h
+)
+
+# Get directories containing headers
+set(HEADER_DIRS "")
+
+foreach(HEADER ${HEADERS})
+    get_filename_component(HEADER_DIR ${HEADER} DIRECTORY)
+    list(APPEND HEADER_DIRS ${HEADER_DIR})
+endforeach()
+
+# Remove duplicated directories
+list(REMOVE_DUPLICATES HEADER_DIRS)
+
+target_include_directories(VideoRecorder PRIVATE
+    ${HEADER_DIRS}
+    ${FFMPEG_INCLUDE_DIRS}
+)
+
 # Header files
 target_include_directories(VideoRecorder PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/Utils
-    ${CMAKE_SOURCE_DIR}/src/Video
+    ${HEADER_DIRS}
     ${FFMPEG_INCLUDE_DIRS}
 )
 

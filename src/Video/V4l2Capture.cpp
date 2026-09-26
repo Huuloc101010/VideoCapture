@@ -209,7 +209,7 @@ UniquePacketPtr V4l2Capture::ReadPacketFromFFmpeg()
         // LOGE("TimeBase: {}/{}",  GetStream()->time_base.num, GetStream()->time_base.den);
         // LOGE("ReadPacket Timebase {}", Utils::GetInstance().GetTimeStamp(GetStream()->time_base, Packet->pts));
         // LOGE("Packet pts {}", Packet->pts);
-        if (Retval)
+        if(Retval)
         {
             if(Retval == AVERROR_EOF)
             {
@@ -222,6 +222,7 @@ UniquePacketPtr V4l2Capture::ReadPacketFromFFmpeg()
                 av_strerror(Retval, ErrBuffer, sizeof(ErrBuffer));
                 LOGW("Error read v4l2: {}, Trying {} time left", ErrBuffer, 5 - i);
                 // Try again
+                continue;
             }
         }
 
