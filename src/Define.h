@@ -61,6 +61,11 @@ struct VideoBuffer
     size_t length{0};
 };
 
+struct VideoRecorderConfig
+{
+    std::string PathDevice;
+    std::string PathVideoOutput;
+};
 
 template<typename T, void(*FreeFunction)(T*)>
 class UniquePtrDeleterLevel1

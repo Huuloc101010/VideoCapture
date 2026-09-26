@@ -23,7 +23,6 @@ bool Encoder::ConfigEncoder(const EncoderConfig& Config)
     m_CodecContext->gop_size = 10;
     m_CodecContext->max_b_frames = 0;
     m_CodecContext->pix_fmt = AV_PIX_FMT_YUV420P;
-    int Ret = 0;
     if(m_Codec->id == AV_CODEC_ID_H264)
     {
         av_opt_set(m_CodecContext->priv_data, "preset", "slow", 0);

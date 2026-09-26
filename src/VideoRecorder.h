@@ -22,13 +22,14 @@ class VideoRecorder
 public:
     VideoRecorder() = default;
     ~VideoRecorder() = default;
-    
+    void Config(const VideoRecorderConfig& Config);
     void Record();
 private:
-    V4l2Capture       m_V4l2Capture;
-    Encoder           m_Encoder;
-    Muxer             m_Muxer;
-    ColorConvert      m_ColorConvert;
+    V4l2Capture          m_V4l2Capture;
+    Encoder              m_Encoder;
+    Muxer                m_Muxer;
+    ColorConvert         m_ColorConvert;
+    VideoRecorderConfig  m_Config;
 };
 
 #endif // VIDEO_RECORDER_H

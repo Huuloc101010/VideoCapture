@@ -10,7 +10,7 @@ void VideoRecorder::Record()
     constexpr int height = 480;
     CaptureType type = CaptureType::V4L2_NATIVE;
     CaptureType type2 = CaptureType::FFMPEG_CAPTURE;
-    V4l2CaptureConfig Config = {type2, "/dev/video0", width, height, 30, AV_PIX_FMT_YUYV422};
+    V4l2CaptureConfig Config = {type2, m_Config.PathDevice, width, height, 30, AV_PIX_FMT_YUYV422};
     LOGW("type {}", (int)type);
 
     if(m_V4l2Capture.Config(Config) == false)
@@ -42,7 +42,7 @@ void VideoRecorder::Record()
     // }
     //std::vector<UniquePacketPtr> Total;
     
-    m_Muxer.Config({width, height, m_Encoder.GetVideoContext().get(), nullptr, "mp4", "Video.mp4"});
+    m_Muxer.Config({width, height, m_Encoder.GetVideoContext().get(), nullptr, "mp4", m_Config.PathVideoOutput});
     m_Muxer.WriteHeader();
     auto Start = std::chrono::steady_clock::now();
     int64_t FirstPts = AV_NOPTS_VALUE;
@@ -144,4 +144,9 @@ void VideoRecorder::Record()
     LOGI("100 frames captured in {} seconds", Seconds);
     LOGI("Actual FPS = {}", 100.0 / Seconds);
     m_Muxer.WriteTrailer();
+}
+
+void VideoRecorder::Config(const VideoRecorderConfig& Config)
+{
+    m_Config = Config;
 }
