@@ -18,7 +18,7 @@ bool Encoder::ConfigEncoder(const EncoderConfig& Config)
     m_CodecContext->width = Config.Width;
     m_CodecContext->height = Config.Height;
     /* frames per second */
-    m_CodecContext->time_base = (AVRational){1, 30};
+    m_CodecContext->time_base = (AVRational){1, 1000000};
     m_CodecContext->framerate = (AVRational){30, 1};
     m_CodecContext->gop_size = 10;
     m_CodecContext->max_b_frames = 0;
