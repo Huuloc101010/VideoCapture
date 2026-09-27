@@ -11,6 +11,7 @@ public:
     Encoder() = default;
     ~Encoder() = default;
     virtual bool ConfigEncoder(const EncoderConfig& Config);
+    virtual bool ConfigAudioEncoder(const EncoderConfig& Config);
     std::vector<UniquePacketPtr> Encode(UniqueFramePtr Frame);
     const UniqueCodecContext& GetVideoContext() const;
 
