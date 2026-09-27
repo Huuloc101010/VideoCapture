@@ -6,7 +6,7 @@ bool AlsaCapture::Config(const AlsaCaptureConfig& Config)
     // Register with ffmpeg
     avdevice_register_all();
 
-    AVInputFormat* InputFormat = av_find_input_format("alsa");
+    const AVInputFormat* InputFormat = av_find_input_format("alsa");
     if (InputFormat == nullptr)
     {
         LOGE("alsa input format not found");

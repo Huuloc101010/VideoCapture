@@ -33,7 +33,7 @@ bool V4l2Capture::FFmpegConfig()
     // Register with ffmpeg
     avdevice_register_all();
 
-    AVInputFormat* InputFormat = av_find_input_format("video4linux2");
+    const AVInputFormat* InputFormat = av_find_input_format("video4linux2");
     if (InputFormat == nullptr)
     {
         LOGE("V4l2 input format not found");

@@ -2,7 +2,7 @@
 
 bool Encoder::ConfigEncoder(const EncoderConfig& Config)
 {
-    m_Codec = avcodec_find_encoder(AV_CODEC_ID_H264);
+    m_Codec = (AVCodecPtr)avcodec_find_encoder(AV_CODEC_ID_H264);
     if(m_Codec == nullptr)
     {
         LOGE("Can not find decoder");
