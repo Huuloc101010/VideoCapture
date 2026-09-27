@@ -120,6 +120,7 @@ using UniqueFormatContext = std::unique_ptr<AVFormatContext, UniquePtrDeleterLev
 using UniqueCodecContext  = std::unique_ptr<AVCodecContext, UniquePtrDeleterLevel2<AVCodecContext, avcodec_free_context>>;
 using AVCodecPtr          = AVCodec *;
 using AVStreamPtr         = AVStream *;
+using AVCodecParPtr       = AVCodecParameters *;
 
 struct MuxerConfig
 {

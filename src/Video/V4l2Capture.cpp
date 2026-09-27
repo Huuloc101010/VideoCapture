@@ -115,6 +115,8 @@ bool V4l2Capture::FFmpegConfig()
     );
 
     LOGI("V4L2 init success: {} ({}, {} fps)", m_Config.Device, res_str, m_Config.FPS);
+    AVCodecParPtr CodecPar = Stream->codecpar;
+    LOGI("Video sample format: {}", Utils::GetInstance().GetSampleFormatName(MediaType::VIDEO , CodecPar->format));
     return true;
 }
 

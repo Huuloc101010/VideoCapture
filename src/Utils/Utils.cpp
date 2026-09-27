@@ -36,3 +36,26 @@ double Utils::GetTimeStamp(const AVRational& Rational, long long Time)
     }
     return ((double)Rational.num/Rational.den) * Time;
 }
+
+std::string Utils::GetSampleFormatName(const MediaType& MediaType, const int Format)
+{
+    std::string Retval;
+    switch(MediaType)
+    {
+        case MediaType::AUDIO:
+        {
+            Retval = av_get_sample_fmt_name((AVSampleFormat)Format);
+            break;
+        }
+        case MediaType::VIDEO:
+        {
+            Retval = av_get_pix_fmt_name((AVPixelFormat)Format);
+            break;
+        }
+        default:
+        {
+            LOGE("Do not support this Mediatype");
+        }
+    }
+    return Retval;
+}
