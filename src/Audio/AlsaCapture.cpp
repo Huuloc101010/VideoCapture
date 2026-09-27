@@ -14,6 +14,13 @@ bool AlsaCapture::Config(const AlsaCaptureConfig& Config)
     }
 
     AVDictionary* Opts = nullptr;
+    ScopeGuard Guard([&]()
+    {
+        if(Opts != nullptr)
+        {
+            av_dict_free(&Opts);
+        }
+    });
     av_dict_set(&Opts, "sample_rate", m_Config.SampleRate.c_str(), 0);
     av_dict_set(&Opts, "channels", m_Config.Channels.c_str(), 0);
     AVFormatContext* FormatContext = nullptr;
@@ -24,7 +31,6 @@ bool AlsaCapture::Config(const AlsaCaptureConfig& Config)
         LOGE("Format context is null");
         return false;
     }
-    av_dict_free(&Opts);
 
     if(Retval < 0)
     {

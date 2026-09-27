@@ -41,6 +41,13 @@ bool V4l2Capture::FFmpegConfig()
     }
 
     AVDictionary* Opts = nullptr;
+    ScopeGuard Guard([&]()
+    {
+        if(Opts != nullptr)
+        {
+            av_dict_free(&Opts);
+        }
+    });
     std::string res_str = std::format("{}x{}", m_Config.Width, m_Config.Height);
     av_dict_set(&Opts, "video_size", res_str.c_str(), 0);
     std::string fps_str = std::format("{}", m_Config.FPS);
@@ -54,7 +61,6 @@ bool V4l2Capture::FFmpegConfig()
         LOGE("Format context is null");
         return false;
     }
-    av_dict_free(&Opts);
 
     if(Retval < 0)
     {
