@@ -106,3 +106,36 @@ UniqueFramePtr AudioConvert::ConvertS16ToFPTP(UniqueFramePtr Frame)
     OutputFrame->nb_samples = Ret;
     return OutputFrame;
 }
+
+std::vector<UniqueFramePtr> AudioConvert::SplitPacket(UniqueFramePtr Frame)
+{
+    // Hardcode 4096 to 1024
+    std::vector<UniqueFramePtr> Retval(4);
+    if(Frame == nullptr)
+    {
+        LOGE("Frame is null");
+        return {};
+    }
+    for(auto& Element : Retval)
+    {
+        Element.reset(av_frame_alloc());
+        Element->nb_samples     = 1024;
+        Element->format         = Frame->format;
+        Element->sample_rate    = Frame->sample_rate;
+        Element->channel_layout = Frame->channel_layout;
+        if(av_frame_get_buffer(Element.get(), 0) != 0)
+        {
+            LOGE("Get buffer fail");
+            return {};
+        }
+    }
+    //LOGE("Frame->nb_samples {}", (int)Frame->nb_samples);
+
+    for(int i = 0; i < Frame->nb_samples; ++i)
+    {
+        int number = i / 1024;
+        Retval[number]->data[0][i % 1024] = Frame->data[0][i];
+    }
+
+    return Retval;
+}

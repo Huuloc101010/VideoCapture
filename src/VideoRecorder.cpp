@@ -107,20 +107,31 @@ void VideoRecorder::Record()
         return;
     }
 
+    AudioConvertConfig Config = {m_AlsaCapture.GetStream(), 48000, AV_CH_LAYOUT_STEREO};
+    m_AudioConvert.Config(Config);
+    m_Muxer.WriteHeader();
     for (int i = 0; i < 70; ++i)
     {
         UniquePacketPtr Packet = m_AlsaCapture.ReadPacket();
         
-        if (!Packet)
+        if(!Packet)
         {
             LOGE("Read packet failed");
             break;
         }
-
-        File.write(
-            reinterpret_cast<const char*>(Packet->data),
-            Packet->size
-        );
+        UniqueFramePtr FrameS16P = m_AudioConvert.ConvertPacketToFrame(std::move(Packet));
+        UniqueFramePtr FrameFPTP = m_AudioConvert.ConvertS16ToFPTP(std::move(FrameS16P));
+        // Split frame 4096 to 1024
+        std::vector<UniqueFramePtr> VectorFrame = m_AudioConvert.SplitPacket(std::move(FrameFPTP));
+        continue;
+        for(auto& Element : VectorFrame)
+        {
+            std::vector<UniquePacketPtr> VectorPacket = m_Encoder.Encode(std::move(Element));
+            for(auto& SubElement : VectorPacket)
+            {
+                m_Muxer.WritePacket(std::move(SubElement));
+            }
+        }
 
         LOGI(
             "Packet {}: size = {} bytes, pts = {}",
@@ -129,8 +140,8 @@ void VideoRecorder::Record()
             Packet->pts
         );
     }
+    m_Muxer.WriteTrailer();
 
-    File.close();
 }
 
 void VideoRecorder::Config(const VideoRecorderConfig& Config)
