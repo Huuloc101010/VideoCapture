@@ -5,9 +5,142 @@
 #include "Define.h"
 
 
+// void VideoRecorder::Record()
+// {
+//     m_IsRunning = true;
+//     if(ConfigVideo() == false)
+//     {
+//         LOGE("Config Video fail");
+//         return;
+//     }
+//     if(ConfigAudio() == false)
+//     {
+//         LOGE("Config Audio fail");
+//         return;
+//     }
+//     m_Muxer.WriteHeader();
+//     auto Start = std::chrono::steady_clock::now();
+//     int64_t FirstPts = AV_NOPTS_VALUE;
+//     std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
+//     int FrameCount = 0;
+//     while(m_IsRunning == true)
+//     {
+//         UniquePacketPtr packet = m_V4l2Capture.ReadPacket();
+//         FrameCount ++;
+//         if(packet == nullptr)
+//         {
+//             LOGE("packet is null");
+//             break;
+//         }
+//         // Save first timstamp
+//         if(FirstPts == AV_NOPTS_VALUE)
+//         {
+//             FirstPts = packet->pts;
+//             packet->pts = 0;
+//         }
+//         else
+//         {
+//             packet->pts = packet->pts - FirstPts;
+//         }
+//         LOGI(
+//         "Frame {}, pts={}, size={}", FrameCount, packet->pts, packet->size);
+//         UniqueFramePtr frame = m_ColorConvert.ConvertPacketToFrame(std::move(packet));
+//         if(frame == nullptr)
+//         {
+//             LOGE("frame is nullptr");
+//             break;
+//         }
+//         UniqueFramePtr YUV420 = m_ColorConvert.ConvertYUV422ToYUV420(std::move(frame));
+//         if(YUV420 == nullptr)
+//         {
+//             LOGE("YUV420 is nullptr");
+//             break;
+//         }
+//         // LOGI("Frame pts {}", YUV420->pts);
+//         // Capture TB -> Encoder TB
+//         YUV420->pts = av_rescale_q(
+//             YUV420->pts,
+//             m_V4l2Capture.GetStream()->time_base,
+//             m_Encoder.GetVideoContext()->time_base
+//         );
+//         std::vector<UniquePacketPtr>  VectorEncoder =  m_Encoder.Encode(std::move(YUV420));
+//         // LOGI("VectorEncoder.size()={}", VectorEncoder.size());
+        
+//         for (auto& Packet : VectorEncoder)
+//         {
+//             if (Packet == nullptr)
+//             {
+//                 LOGE("Packet is nullptr");
+//                 continue;
+//             }
+
+//         //    LOGI("Packet pts={}, dts={}, duration={}, time_base={}/{}",
+//         //         Packet->pts,
+//         //         Packet->dts,
+//         //         Packet->duration,
+//         //         m_V4l2Capture.GetStream()->time_base.num,
+//         //         m_V4l2Capture.GetStream()->time_base.den
+//         //         );
+//             m_Muxer.WritePacket(std::move(Packet));
+//         }
+//     }
+//     // Flush encoder
+//     auto End = std::chrono::steady_clock::now();
+//     FlushEncoder();
+//     double Seconds =
+//     std::chrono::duration<double>(End - Start).count();
+
+//     LOGI("100 frames captured in {} seconds", Seconds);
+//     LOGI("Actual FPS = {}", FrameCount / Seconds);
+//     m_Muxer.WriteTrailer();
+// }
+
 void VideoRecorder::Record()
 {
     m_IsRunning = true;
+
+    std::ofstream File("audio.raw", std::ios::binary);
+
+    if (!File.is_open())
+    {
+        LOGE("Can not open audio.raw");
+        return;
+    }
+
+    for (int i = 0; i < 70; ++i)
+    {
+        UniquePacketPtr Packet = m_AlsaCapture.ReadPacket();
+        
+        if (!Packet)
+        {
+            LOGE("Read packet failed");
+            break;
+        }
+
+        File.write(
+            reinterpret_cast<const char*>(Packet->data),
+            Packet->size
+        );
+
+        LOGI(
+            "Packet {}: size = {} bytes, pts = {}",
+            i,
+            Packet->size,
+            Packet->pts
+        );
+    }
+
+    File.close();
+}
+
+void VideoRecorder::Config(const VideoRecorderConfig& Config)
+{
+    // Calculate time
+    m_Config = Config;
+    m_TimeRecord = 0;
+    m_TimeRecord += m_Config.Time.Hour    * 60 * 60;
+    m_TimeRecord += m_Config.Time.Minutes * 60;
+    m_TimeRecord += m_Config.Time.Second;
     if(ConfigVideo() == false)
     {
         LOGE("Config Video fail");
@@ -18,90 +151,6 @@ void VideoRecorder::Record()
         LOGE("Config Audio fail");
         return;
     }
-    m_Muxer.WriteHeader();
-    auto Start = std::chrono::steady_clock::now();
-    int64_t FirstPts = AV_NOPTS_VALUE;
-    std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
-    int FrameCount = 0;
-    while(m_IsRunning == true)
-    {
-        UniquePacketPtr packet = m_V4l2Capture.ReadPacket();
-        FrameCount ++;
-        if(packet == nullptr)
-        {
-            LOGE("packet is null");
-            break;
-        }
-        // Save first timstamp
-        if(FirstPts == AV_NOPTS_VALUE)
-        {
-            FirstPts = packet->pts;
-            packet->pts = 0;
-        }
-        else
-        {
-            packet->pts = packet->pts - FirstPts;
-        }
-        LOGI(
-        "Frame {}, pts={}, size={}", FrameCount, packet->pts, packet->size);
-        UniqueFramePtr frame = m_ColorConvert.ConvertPacketToFrame(std::move(packet));
-        if(frame == nullptr)
-        {
-            LOGE("frame is nullptr");
-            break;
-        }
-        UniqueFramePtr YUV420 = m_ColorConvert.ConvertYUV422ToYUV420(std::move(frame));
-        if(YUV420 == nullptr)
-        {
-            LOGE("YUV420 is nullptr");
-            break;
-        }
-        // LOGI("Frame pts {}", YUV420->pts);
-        // Capture TB -> Encoder TB
-        YUV420->pts = av_rescale_q(
-            YUV420->pts,
-            m_V4l2Capture.GetStream()->time_base,
-            m_Encoder.GetVideoContext()->time_base
-        );
-        std::vector<UniquePacketPtr>  VectorEncoder =  m_Encoder.Encode(std::move(YUV420));
-        // LOGI("VectorEncoder.size()={}", VectorEncoder.size());
-        
-        for (auto& Packet : VectorEncoder)
-        {
-            if (Packet == nullptr)
-            {
-                LOGE("Packet is nullptr");
-                continue;
-            }
-
-        //    LOGI("Packet pts={}, dts={}, duration={}, time_base={}/{}",
-        //         Packet->pts,
-        //         Packet->dts,
-        //         Packet->duration,
-        //         m_V4l2Capture.GetStream()->time_base.num,
-        //         m_V4l2Capture.GetStream()->time_base.den
-        //         );
-            m_Muxer.WritePacket(std::move(Packet));
-        }
-    }
-    // Flush encoder
-    auto End = std::chrono::steady_clock::now();
-    FlushEncoder();
-    double Seconds =
-    std::chrono::duration<double>(End - Start).count();
-
-    LOGI("100 frames captured in {} seconds", Seconds);
-    LOGI("Actual FPS = {}", FrameCount / Seconds);
-    m_Muxer.WriteTrailer();
-}
-
-void VideoRecorder::Config(const VideoRecorderConfig& Config)
-{
-    m_Config = Config;
-    m_TimeRecord = 0;
-    m_TimeRecord += m_Config.Time.Hour    * 60 * 60;
-    m_TimeRecord += m_Config.Time.Minutes * 60;
-    m_TimeRecord += m_Config.Time.Second;
 }
 
 bool VideoRecorder::ConfigVideo()
@@ -145,6 +194,16 @@ bool VideoRecorder::ConfigVideo()
 
 bool VideoRecorder::ConfigAudio()
 {
+    LOGE("VideoRecorder::ConfigAudio()");
+    if(m_AlsaCapture.Config({"hw:0,0", "48000", "2"}))
+    {
+        LOGI("Config alsa success");
+    }
+    AVStream* Stream = m_AlsaCapture.GetStream();
+
+    LOGI("Sample rate: {}", Stream->codecpar->sample_rate);
+    //LOGI("Channels: {}", Stream->codecpar->ch_layout.nb_channels);
+    LOGI("Sample format: {}", Stream->codecpar->format);
     return true;
 }
 

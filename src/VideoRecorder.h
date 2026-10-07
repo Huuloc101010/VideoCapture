@@ -16,6 +16,8 @@
 #include "Encoder.h"
 #include "Muxer.h"
 #include "ColorConvert.h"
+#include "AlsaCapture.h"
+#include "AudioConvert.h"
 
 class VideoRecorder
 {
@@ -37,6 +39,8 @@ private:
     VideoRecorderConfig  m_Config;
     std::atomic<uint64_t> m_TimeRecord;
     std::atomic<bool>     m_IsRunning;
+    AlsaCapture           m_AlsaCapture;
+    AudioConvert          m_AudioConvert;
 };
 
 #endif // VIDEO_RECORDER_H
