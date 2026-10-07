@@ -27,6 +27,7 @@ pkg_check_modules(FFMPEG REQUIRED
     libavutil
     libavdevice
     libswscale
+    libswresample
 )
 
 # Find all header files

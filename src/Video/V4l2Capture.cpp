@@ -54,7 +54,7 @@ bool V4l2Capture::FFmpegConfig()
     av_dict_set(&Opts, "framerate", fps_str.c_str(), 0);
     av_dict_set(&Opts, "pixel_format", "yuyv422", 0);
     AVFormatContext* FormatContext = nullptr;
-    int Retval = avformat_open_input(&FormatContext, m_Config.Device.c_str(), InputFormat, &Opts);
+    int Retval = avformat_open_input(&FormatContext, m_Config.Device.c_str(), const_cast<AVInputFormat*>(InputFormat), &Opts);
     m_FormatContext.reset(FormatContext);
     if(m_FormatContext == nullptr)
     {
