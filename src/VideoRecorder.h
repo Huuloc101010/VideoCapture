@@ -23,6 +23,8 @@ public:
     VideoRecorder() = default;
     ~VideoRecorder() = default;
     void Config(const VideoRecorderConfig& Config);
+    bool ConfigVideo();
+    bool ConfigAudio();
     void Record();
     void Stop();
 private:

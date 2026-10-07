@@ -8,36 +8,16 @@
 void VideoRecorder::Record()
 {
     m_IsRunning = true;
-    constexpr int width = 640;
-    constexpr int height = 480;
-    CaptureType type = CaptureType::V4L2_NATIVE;
-    CaptureType type2 = CaptureType::FFMPEG_CAPTURE;
-    V4l2CaptureConfig Config = {type2, m_Config.PathDevice, width, height, 30, AV_PIX_FMT_YUYV422};
-    LOGW("type {}", (int)type);
-
-    if(m_V4l2Capture.Config(Config) == false)
+    if(ConfigVideo() == false)
     {
-        LOGE("Config fail");
+        LOGE("Config Video fail");
         return;
     }
-    ColorConvertConfig ConvertConfig = {width, height, AV_PIX_FMT_YUYV422};
-    
-    m_ColorConvert.ConfigColorConvert(ConvertConfig);
-    EncoderConfig EncoderConfig = {width, height, MediaType::VIDEO};
-    
-    if(m_Encoder.ConfigEncoder(EncoderConfig) == false)
+    if(ConfigAudio() == false)
     {
-        LOGE("Config encoder fail");
+        LOGE("Config Audio fail");
         return;
     }
-    LOGI(
-    "Encoder TB = {}/{}",
-    m_Encoder.GetVideoContext()->time_base.num,
-    m_Encoder.GetVideoContext()->time_base.den
-    );
-    LOGI("Config success");
-
-    m_Muxer.Config({width, height, m_Encoder.GetVideoContext().get(), nullptr, "mp4", m_Config.PathVideoOutput});
     m_Muxer.WriteHeader();
     auto Start = std::chrono::steady_clock::now();
     int64_t FirstPts = AV_NOPTS_VALUE;
@@ -122,6 +102,50 @@ void VideoRecorder::Config(const VideoRecorderConfig& Config)
     m_TimeRecord += m_Config.Time.Hour    * 60 * 60;
     m_TimeRecord += m_Config.Time.Minutes * 60;
     m_TimeRecord += m_Config.Time.Second;
+}
+
+bool VideoRecorder::ConfigVideo()
+{
+    constexpr int width = 640;
+    constexpr int height = 480;
+    CaptureType type = CaptureType::V4L2_NATIVE;
+    CaptureType type2 = CaptureType::FFMPEG_CAPTURE;
+    V4l2CaptureConfig Config = {type2, m_Config.PathDevice, width, height, 30, AV_PIX_FMT_YUYV422};
+    LOGW("type {}", (int)type);
+
+    if(m_V4l2Capture.Config(Config) == false)
+    {
+        LOGE("Config fail");
+        return false;
+    }
+    ColorConvertConfig ConvertConfig = {width, height, AV_PIX_FMT_YUYV422};
+    
+    m_ColorConvert.ConfigColorConvert(ConvertConfig);
+    EncoderConfig EncoderConfig = {width, height, MediaType::VIDEO};
+    
+    if(m_Encoder.ConfigEncoder(EncoderConfig) == false)
+    {
+        LOGE("Config encoder fail");
+        return false;
+    }
+    LOGI(
+    "Encoder TB = {}/{}",
+    m_Encoder.GetVideoContext()->time_base.num,
+    m_Encoder.GetVideoContext()->time_base.den
+    );
+    LOGI("Config success");
+
+    if(m_Muxer.Config({width, height, m_Encoder.GetVideoContext().get(), nullptr, "mp4", m_Config.PathVideoOutput}) == false)
+    {
+        LOGE("Config muxer fail");
+        return false;
+    }
+    return true;
+}
+
+bool VideoRecorder::ConfigAudio()
+{
+    return true;
 }
 
 void VideoRecorder::CheckTimeRecorded()
