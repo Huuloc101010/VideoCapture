@@ -110,22 +110,46 @@ void VideoRecorder::Record()
     AudioConvertConfig Config = {m_AlsaCapture.GetStream(), 48000, AV_CH_LAYOUT_STEREO};
     m_AudioConvert.Config(Config);
     m_Muxer.WriteHeader();
+    uint64_t FirstTimeStamp = AV_NOPTS_VALUE;
     for (int i = 0; i < 70; ++i)
     {
         UniquePacketPtr Packet = m_AlsaCapture.ReadPacket();
-        
+        if(Packet == nullptr)
+        {
+            LOGE("Packet is nullptr");
+            return;
+        }
+        // Save first timestamp
+        if(FirstTimeStamp == AV_NOPTS_VALUE)
+        {
+            FirstTimeStamp = Packet->dts;
+        }
+        Packet->pts = Packet->pts - FirstTimeStamp;
+        LOGE("First timstamp {}", FirstTimeStamp);
+        LOGE("Packet->pts {}", Packet->pts);
+        int num = m_AlsaCapture.GetStream()->time_base.num;
+        int den = m_AlsaCapture.GetStream()->time_base.den;
+        LOGE("num {}", num);
+        LOGE("den {}", den);
+        LOGE("Time {}", Packet->pts * num / (double)den);
+        LOGE("Duration {}", Packet->duration);
         if(!Packet)
         {
             LOGE("Read packet failed");
             break;
         }
+        LOGE("Packet->pts {}", Packet->pts);
         UniqueFramePtr FrameS16P = m_AudioConvert.ConvertPacketToFrame(std::move(Packet));
+        LOGE("FrameFPTP->pts {}", FrameS16P->pts);
         UniqueFramePtr FrameFPTP = m_AudioConvert.ConvertS16ToFPTP(std::move(FrameS16P));
+        LOGE("FrameFPTP->pts {}", FrameFPTP->pts);
         // Split frame 4096 to 1024
         std::vector<UniqueFramePtr> VectorFrame = m_AudioConvert.SplitPacket(std::move(FrameFPTP));
-        continue;
         for(auto& Element : VectorFrame)
         {
+            LOGW("Duration {}", Element->pkt_duration);
+            LOGW("Timestamp pts {}", Element->pts);
+            continue;
             std::vector<UniquePacketPtr> VectorPacket = m_Encoder.Encode(std::move(Element));
             for(auto& SubElement : VectorPacket)
             {
@@ -133,12 +157,12 @@ void VideoRecorder::Record()
             }
         }
 
-        LOGI(
-            "Packet {}: size = {} bytes, pts = {}",
-            i,
-            Packet->size,
-            Packet->pts
-        );
+        // LOGI(
+        //     "Packet {}: size = {} bytes, pts = {}",
+        //     i,
+        //     Packet->size,
+        //     Packet->pts
+        // );
     }
     m_Muxer.WriteTrailer();
 

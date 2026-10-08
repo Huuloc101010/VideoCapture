@@ -55,6 +55,9 @@ UniqueFramePtr AudioConvert::ConvertPacketToFrame(UniquePacketPtr Packet)
         return {};
     }
     std::copy(Packet->data, Packet->data + Packet->size, Frame->data[0]);
+    Frame->pts = Packet->pts;
+    Frame->pkt_dts = Packet->pts;
+    Frame->pkt_duration = Packet->duration;
     return Frame;
 }
 
@@ -104,6 +107,9 @@ UniqueFramePtr AudioConvert::ConvertS16ToFPTP(UniqueFramePtr Frame)
     }
 
     OutputFrame->nb_samples = Ret;
+    OutputFrame->pkt_dts = Frame->pkt_dts;
+    OutputFrame->pts = Frame->pts;
+    OutputFrame->pkt_duration = Frame->pkt_duration;
     return OutputFrame;
 }
 
@@ -130,12 +136,17 @@ std::vector<UniqueFramePtr> AudioConvert::SplitPacket(UniqueFramePtr Frame)
         }
     }
     //LOGE("Frame->nb_samples {}", (int)Frame->nb_samples);
-
     for(int i = 0; i < Frame->nb_samples; ++i)
     {
         int number = i / 1024;
         Retval[number]->data[0][i % 1024] = Frame->data[0][i];
     }
-
+    uint64_t NewDuration =  Frame->pkt_duration / 4;
+    // Calculate duration
+    for(int i = 0; i < Retval.size(); ++i)
+    {
+        Retval[i]->pts = Frame->pts + NewDuration * i;
+        Retval[i]->pkt_duration = NewDuration;
+    }
     return Retval;
 }
