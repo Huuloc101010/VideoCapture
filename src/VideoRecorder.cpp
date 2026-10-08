@@ -8,16 +8,6 @@
 void VideoRecorder::Record()
 {
     m_IsRunning = true;
-    if(ConfigVideo() == false)
-    {
-        LOGE("Config Video fail");
-        return;
-    }
-    if(ConfigAudio() == false)
-    {
-        LOGE("Config Audio fail");
-        return;
-    }
     m_Muxer.WriteHeader();
     auto Start = std::chrono::steady_clock::now();
     int64_t FirstPts = AV_NOPTS_VALUE;
