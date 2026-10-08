@@ -5,168 +5,168 @@
 #include "Define.h"
 
 
-// void VideoRecorder::Record()
-// {
-//     m_IsRunning = true;
-//     if(ConfigVideo() == false)
-//     {
-//         LOGE("Config Video fail");
-//         return;
-//     }
-//     if(ConfigAudio() == false)
-//     {
-//         LOGE("Config Audio fail");
-//         return;
-//     }
-//     m_Muxer.WriteHeader();
-//     auto Start = std::chrono::steady_clock::now();
-//     int64_t FirstPts = AV_NOPTS_VALUE;
-//     std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
-//     int FrameCount = 0;
-//     while(m_IsRunning == true)
-//     {
-//         UniquePacketPtr packet = m_V4l2Capture.ReadPacket();
-//         FrameCount ++;
-//         if(packet == nullptr)
-//         {
-//             LOGE("packet is null");
-//             break;
-//         }
-//         // Save first timstamp
-//         if(FirstPts == AV_NOPTS_VALUE)
-//         {
-//             FirstPts = packet->pts;
-//             packet->pts = 0;
-//         }
-//         else
-//         {
-//             packet->pts = packet->pts - FirstPts;
-//         }
-//         LOGI(
-//         "Frame {}, pts={}, size={}", FrameCount, packet->pts, packet->size);
-//         UniqueFramePtr frame = m_ColorConvert.ConvertPacketToFrame(std::move(packet));
-//         if(frame == nullptr)
-//         {
-//             LOGE("frame is nullptr");
-//             break;
-//         }
-//         UniqueFramePtr YUV420 = m_ColorConvert.ConvertYUV422ToYUV420(std::move(frame));
-//         if(YUV420 == nullptr)
-//         {
-//             LOGE("YUV420 is nullptr");
-//             break;
-//         }
-//         // LOGI("Frame pts {}", YUV420->pts);
-//         // Capture TB -> Encoder TB
-//         YUV420->pts = av_rescale_q(
-//             YUV420->pts,
-//             m_V4l2Capture.GetStream()->time_base,
-//             m_Encoder.GetVideoContext()->time_base
-//         );
-//         std::vector<UniquePacketPtr>  VectorEncoder =  m_Encoder.Encode(std::move(YUV420));
-//         // LOGI("VectorEncoder.size()={}", VectorEncoder.size());
-        
-//         for (auto& Packet : VectorEncoder)
-//         {
-//             if (Packet == nullptr)
-//             {
-//                 LOGE("Packet is nullptr");
-//                 continue;
-//             }
-
-//         //    LOGI("Packet pts={}, dts={}, duration={}, time_base={}/{}",
-//         //         Packet->pts,
-//         //         Packet->dts,
-//         //         Packet->duration,
-//         //         m_V4l2Capture.GetStream()->time_base.num,
-//         //         m_V4l2Capture.GetStream()->time_base.den
-//         //         );
-//             m_Muxer.WritePacket(std::move(Packet));
-//         }
-//     }
-//     // Flush encoder
-//     auto End = std::chrono::steady_clock::now();
-//     FlushEncoder();
-//     double Seconds =
-//     std::chrono::duration<double>(End - Start).count();
-
-//     LOGI("100 frames captured in {} seconds", Seconds);
-//     LOGI("Actual FPS = {}", FrameCount / Seconds);
-//     m_Muxer.WriteTrailer();
-// }
-
 void VideoRecorder::Record()
 {
     m_IsRunning = true;
-
-    std::ofstream File("audio.raw", std::ios::binary);
-
-    if (!File.is_open())
+    if(ConfigVideo() == false)
     {
-        LOGE("Can not open audio.raw");
+        LOGE("Config Video fail");
         return;
     }
-
-    AudioConvertConfig Config = {m_AlsaCapture.GetStream(), 48000, AV_CH_LAYOUT_STEREO};
-    m_AudioConvert.Config(Config);
-    m_Muxer.WriteHeader();
-    uint64_t FirstTimeStamp = AV_NOPTS_VALUE;
-    for (int i = 0; i < 70; ++i)
+    if(ConfigAudio() == false)
     {
-        UniquePacketPtr Packet = m_AlsaCapture.ReadPacket();
-        if(Packet == nullptr)
+        LOGE("Config Audio fail");
+        return;
+    }
+    m_Muxer.WriteHeader();
+    auto Start = std::chrono::steady_clock::now();
+    int64_t FirstPts = AV_NOPTS_VALUE;
+    std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
+    int FrameCount = 0;
+    while(m_IsRunning == true)
+    {
+        UniquePacketPtr packet = m_V4l2Capture.ReadPacket();
+        FrameCount ++;
+        if(packet == nullptr)
         {
-            LOGE("Packet is nullptr");
-            return;
-        }
-        // Save first timestamp
-        if(FirstTimeStamp == AV_NOPTS_VALUE)
-        {
-            FirstTimeStamp = Packet->dts;
-        }
-        Packet->pts = Packet->pts - FirstTimeStamp;
-        LOGE("First timstamp {}", FirstTimeStamp);
-        LOGE("Packet->pts {}", Packet->pts);
-        int num = m_AlsaCapture.GetStream()->time_base.num;
-        int den = m_AlsaCapture.GetStream()->time_base.den;
-        LOGE("num {}", num);
-        LOGE("den {}", den);
-        LOGE("Time {}", Packet->pts * num / (double)den);
-        LOGE("Duration {}", Packet->duration);
-        if(!Packet)
-        {
-            LOGE("Read packet failed");
+            LOGE("packet is null");
             break;
         }
-        LOGE("Packet->pts {}", Packet->pts);
-        UniqueFramePtr FrameS16P = m_AudioConvert.ConvertPacketToFrame(std::move(Packet));
-        LOGE("FrameFPTP->pts {}", FrameS16P->pts);
-        UniqueFramePtr FrameFPTP = m_AudioConvert.ConvertS16ToFPTP(std::move(FrameS16P));
-        LOGE("FrameFPTP->pts {}", FrameFPTP->pts);
-        // Split frame 4096 to 1024
-        std::vector<UniqueFramePtr> VectorFrame = m_AudioConvert.SplitPacket(std::move(FrameFPTP));
-        for(auto& Element : VectorFrame)
+        // Save first timstamp
+        if(FirstPts == AV_NOPTS_VALUE)
         {
-            LOGW("Duration {}", Element->pkt_duration);
-            LOGW("Timestamp pts {}", Element->pts);
-            continue;
-            std::vector<UniquePacketPtr> VectorPacket = m_Encoder.Encode(std::move(Element));
-            for(auto& SubElement : VectorPacket)
-            {
-                m_Muxer.WritePacket(std::move(SubElement));
-            }
+            FirstPts = packet->pts;
+            packet->pts = 0;
         }
+        else
+        {
+            packet->pts = packet->pts - FirstPts;
+        }
+        LOGI(
+        "Frame {}, pts={}, size={}", FrameCount, packet->pts, packet->size);
+        UniqueFramePtr frame = m_ColorConvert.ConvertPacketToFrame(std::move(packet));
+        if(frame == nullptr)
+        {
+            LOGE("frame is nullptr");
+            break;
+        }
+        UniqueFramePtr YUV420 = m_ColorConvert.ConvertYUV422ToYUV420(std::move(frame));
+        if(YUV420 == nullptr)
+        {
+            LOGE("YUV420 is nullptr");
+            break;
+        }
+        // LOGI("Frame pts {}", YUV420->pts);
+        // Capture TB -> Encoder TB
+        YUV420->pts = av_rescale_q(
+            YUV420->pts,
+            m_V4l2Capture.GetStream()->time_base,
+            m_Encoder.GetVideoContext()->time_base
+        );
+        std::vector<UniquePacketPtr>  VectorEncoder =  m_Encoder.Encode(std::move(YUV420));
+        // LOGI("VectorEncoder.size()={}", VectorEncoder.size());
+        
+        for (auto& Packet : VectorEncoder)
+        {
+            if (Packet == nullptr)
+            {
+                LOGE("Packet is nullptr");
+                continue;
+            }
 
-        // LOGI(
-        //     "Packet {}: size = {} bytes, pts = {}",
-        //     i,
-        //     Packet->size,
-        //     Packet->pts
-        // );
+        //    LOGI("Packet pts={}, dts={}, duration={}, time_base={}/{}",
+        //         Packet->pts,
+        //         Packet->dts,
+        //         Packet->duration,
+        //         m_V4l2Capture.GetStream()->time_base.num,
+        //         m_V4l2Capture.GetStream()->time_base.den
+        //         );
+            m_Muxer.WritePacket(std::move(Packet));
+        }
     }
-    m_Muxer.WriteTrailer();
+    // Flush encoder
+    auto End = std::chrono::steady_clock::now();
+    FlushEncoder();
+    double Seconds =
+    std::chrono::duration<double>(End - Start).count();
 
+    LOGI("100 frames captured in {} seconds", Seconds);
+    LOGI("Actual FPS = {}", FrameCount / Seconds);
+    m_Muxer.WriteTrailer();
 }
+
+// void VideoRecorder::Record()
+// {
+//     m_IsRunning = true;
+
+//     std::ofstream File("audio.raw", std::ios::binary);
+
+//     if (!File.is_open())
+//     {
+//         LOGE("Can not open audio.raw");
+//         return;
+//     }
+
+//     AudioConvertConfig Config = {m_AlsaCapture.GetStream(), 48000, AV_CH_LAYOUT_STEREO};
+//     m_AudioConvert.Config(Config);
+//     m_Muxer.WriteHeader();
+//     uint64_t FirstTimeStamp = AV_NOPTS_VALUE;
+//     for (int i = 0; i < 70; ++i)
+//     {
+//         UniquePacketPtr Packet = m_AlsaCapture.ReadPacket();
+//         if(Packet == nullptr)
+//         {
+//             LOGE("Packet is nullptr");
+//             return;
+//         }
+//         // Save first timestamp
+//         if(FirstTimeStamp == AV_NOPTS_VALUE)
+//         {
+//             FirstTimeStamp = Packet->dts;
+//         }
+//         Packet->pts = Packet->pts - FirstTimeStamp;
+//         LOGE("First timstamp {}", FirstTimeStamp);
+//         LOGE("Packet->pts {}", Packet->pts);
+//         int num = m_AlsaCapture.GetStream()->time_base.num;
+//         int den = m_AlsaCapture.GetStream()->time_base.den;
+//         LOGE("num {}", num);
+//         LOGE("den {}", den);
+//         LOGE("Time {}", Packet->pts * num / (double)den);
+//         LOGE("Duration {}", Packet->duration);
+//         if(!Packet)
+//         {
+//             LOGE("Read packet failed");
+//             break;
+//         }
+//         LOGE("Packet->pts {}", Packet->pts);
+//         UniqueFramePtr FrameS16P = m_AudioConvert.ConvertPacketToFrame(std::move(Packet));
+//         LOGE("FrameFPTP->pts {}", FrameS16P->pts);
+//         UniqueFramePtr FrameFPTP = m_AudioConvert.ConvertS16ToFPTP(std::move(FrameS16P));
+//         LOGE("FrameFPTP->pts {}", FrameFPTP->pts);
+//         // Split frame 4096 to 1024
+//         std::vector<UniqueFramePtr> VectorFrame = m_AudioConvert.SplitPacket(std::move(FrameFPTP));
+//         for(auto& Element : VectorFrame)
+//         {
+//             LOGW("Duration {}", Element->pkt_duration);
+//             LOGW("Timestamp pts {}", Element->pts);
+//             continue;
+//             std::vector<UniquePacketPtr> VectorPacket = m_Encoder.Encode(std::move(Element));
+//             for(auto& SubElement : VectorPacket)
+//             {
+//                 m_Muxer.WritePacket(std::move(SubElement));
+//             }
+//         }
+
+//         // LOGI(
+//         //     "Packet {}: size = {} bytes, pts = {}",
+//         //     i,
+//         //     Packet->size,
+//         //     Packet->pts
+//         // );
+//     }
+//     m_Muxer.WriteTrailer();
+
+// }
 
 void VideoRecorder::Config(const VideoRecorderConfig& Config)
 {
