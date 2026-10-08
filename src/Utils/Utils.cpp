@@ -60,7 +60,7 @@ std::string Utils::GetSampleFormatName(const MediaType& MediaType, const int For
     return Retval;
 }
 
-void Utils::ConvertTimestamp(UniqueFramePtr& Frame , const AVRational& OldTimestamp, const AVRational& NewTimestamp)
+void Utils::ConvertTimestamp(const UniqueFramePtr& Frame , const AVRational& OldTimestamp, const AVRational& NewTimestamp)
 {
     if((Frame == nullptr) || (av_cmp_q(OldTimestamp, NewTimestamp) == 0))
     {
@@ -76,7 +76,7 @@ void Utils::ConvertTimestamp(UniqueFramePtr& Frame , const AVRational& OldTimest
     Frame->pkt_dts = av_rescale_q(Frame->pkt_dts, OldTimestamp, NewTimestamp);
 }
 
-void Utils::ConvertTimestamp(UniquePacketPtr& Packet , const AVRational& OldTimestamp, const AVRational& NewTimestamp)
+void Utils::ConvertTimestamp(const UniquePacketPtr& Packet , const AVRational& OldTimestamp, const AVRational& NewTimestamp)
 {
     if((Packet == nullptr) || (av_cmp_q(OldTimestamp, NewTimestamp) == 0))
     {

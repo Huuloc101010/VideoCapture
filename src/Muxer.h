@@ -10,6 +10,7 @@ public:
     bool WritePacket(const UniquePacketPtr Packet);
     bool WriteHeader();
     bool WriteTrailer();
+    AVRational GetTimeBase();
 private:
     UniqueFormatContext m_FormatContext;
     AVStreamPtr         m_VideoStream;

@@ -1,4 +1,5 @@
 #include "Muxer.h"
+#include "Utils.h"
 
 bool Muxer::Config(const MuxerConfig& Config)
 {
@@ -102,12 +103,7 @@ bool Muxer::WritePacket(const UniquePacketPtr Packet)
         return false;
     }
     Packet->stream_index = m_VideoStream->index;
-    av_packet_rescale_ts(
-        Packet.get(),
-        m_Config.VideoCodecContex->time_base,
-        m_VideoStream->time_base
-    );
-
+    Utils::GetInstance().ConvertTimestamp(Packet, m_Config.VideoCodecContex->time_base, m_VideoStream->time_base);
     int Ret = av_interleaved_write_frame(m_FormatContext.get(), Packet.get());
     if(Ret < 0)
     {
@@ -115,4 +111,14 @@ bool Muxer::WritePacket(const UniquePacketPtr Packet)
         return false;
     }
     return true;
+}
+
+AVRational Muxer::GetTimeBase()
+{
+    if(m_VideoStream == nullptr)
+    {
+        LOGE("m_VideoStream is null");
+        return {};
+    }
+    return m_VideoStream->time_base;
 }

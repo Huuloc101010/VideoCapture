@@ -303,3 +303,14 @@ void V4l2Capture::Close()
         m_V4l2NativeFD = -1;
     }
 }
+
+AVRational V4l2Capture::GetTimeBase()
+{
+    auto Stream = GetStream();
+    if(Stream == nullptr)
+    {
+        LOGE("Stream is null");
+        return {};
+    }
+    return Stream->time_base;
+}

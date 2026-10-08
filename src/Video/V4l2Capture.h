@@ -32,6 +32,7 @@ public:
     UniquePacketPtr ReadPacket();
     AVStreamPtr GetStream();
     void Close();
+    AVRational GetTimeBase();
 
 private:
     bool FFmpegConfig();

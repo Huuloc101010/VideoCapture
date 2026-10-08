@@ -9,6 +9,7 @@ public:
     bool Config(const AlsaCaptureConfig& Config);
     UniquePacketPtr ReadPacket();
     AVStreamPtr GetStream();
+    AVRational GetTimeBase();
 
 private:
     UniqueFormatContext      m_FormatContext = nullptr;

@@ -131,3 +131,14 @@ AVStreamPtr AlsaCapture::GetStream()
 {
     return (m_FormatContext && m_AudioStreamIndex >= 0) ? m_FormatContext->streams[m_AudioStreamIndex] : nullptr;
 }
+
+AVRational AlsaCapture::GetTimeBase()
+{
+    auto Stream = GetStream();
+    if(Stream == nullptr)
+    {
+        LOGE("Stream is null");
+        return {};
+    }
+    return Stream->time_base;
+}
