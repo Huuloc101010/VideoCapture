@@ -71,7 +71,8 @@ void VideoRecorder::Record()
         //         m_V4l2Capture.GetStream()->time_base.num,
         //         m_V4l2Capture.GetStream()->time_base.den
         //         );
-            m_Muxer.WritePacket(std::move(Packet));
+        Utils::GetInstance().ConvertTimestamp(Packet, m_Encoder.GetTimeBase(), m_Muxer.GetTimeBase());
+        m_Muxer.WritePacket(std::move(Packet));
         }
     }
     // Flush encoder

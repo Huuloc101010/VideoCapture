@@ -115,3 +115,12 @@ const UniqueCodecContext& Encoder::GetVideoContext() const
     return m_CodecContext;
 }
 
+AVRational Encoder::GetTimeBase()
+{
+    if(m_CodecContext == nullptr)
+    {
+        LOGE("Codecontext is null");
+        return {};
+    }
+    return m_CodecContext->time_base;
+}

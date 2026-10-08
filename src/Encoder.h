@@ -14,6 +14,7 @@ public:
     virtual bool ConfigAudioEncoder(const EncoderConfig& Config);
     std::vector<UniquePacketPtr> Encode(UniqueFramePtr Frame);
     const UniqueCodecContext& GetVideoContext() const;
+    AVRational GetTimeBase();
 
 protected:
     UniqueCodecContext m_CodecContext = nullptr;

@@ -103,7 +103,6 @@ bool Muxer::WritePacket(const UniquePacketPtr Packet)
         return false;
     }
     Packet->stream_index = m_VideoStream->index;
-    Utils::GetInstance().ConvertTimestamp(Packet, m_Config.VideoCodecContex->time_base, m_VideoStream->time_base);
     int Ret = av_interleaved_write_frame(m_FormatContext.get(), Packet.get());
     if(Ret < 0)
     {
