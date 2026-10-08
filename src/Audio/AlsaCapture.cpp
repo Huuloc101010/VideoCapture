@@ -24,7 +24,7 @@ bool AlsaCapture::Config(const AlsaCaptureConfig& Config)
     av_dict_set(&Opts, "sample_rate", m_Config.SampleRate.c_str(), 0);
     av_dict_set(&Opts, "channels", m_Config.Channels.c_str(), 0);
     AVFormatContext* FormatContext = nullptr;
-    int Retval = avformat_open_input(&FormatContext, m_Config.Device.c_str(), InputFormat, &Opts);
+    int Retval = avformat_open_input(&FormatContext, m_Config.Device.c_str(), const_cast<AVInputFormat*>(InputFormat), &Opts);
     m_FormatContext.reset(FormatContext);
     if(m_FormatContext == nullptr)
     {
