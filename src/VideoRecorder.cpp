@@ -51,9 +51,9 @@ void VideoRecorder::Record()
         YUV420->pts = av_rescale_q(
             YUV420->pts,
             m_V4l2Capture.GetStream()->time_base,
-            m_Encoder.GetVideoContext()->time_base
+            m_VideoEncoder.GetVideoContext()->time_base
         );
-        std::vector<UniquePacketPtr>  VectorEncoder =  m_Encoder.Encode(std::move(YUV420));
+        std::vector<UniquePacketPtr>  VectorEncoder =  m_VideoEncoder.Encode(std::move(YUV420));
         // LOGI("VectorEncoder.size()={}", VectorEncoder.size());
         
         for (auto& Packet : VectorEncoder)
@@ -71,7 +71,7 @@ void VideoRecorder::Record()
         //         m_V4l2Capture.GetStream()->time_base.num,
         //         m_V4l2Capture.GetStream()->time_base.den
         //         );
-        Utils::GetInstance().ConvertTimestamp(Packet, m_Encoder.GetTimeBase(), m_Muxer.GetTimeBase());
+        Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetTimeBase());
         m_Muxer.WritePacket(std::move(Packet));
         }
     }
@@ -141,7 +141,7 @@ void VideoRecorder::Record()
 //             LOGW("Duration {}", Element->pkt_duration);
 //             LOGW("Timestamp pts {}", Element->pts);
 //             continue;
-//             std::vector<UniquePacketPtr> VectorPacket = m_Encoder.Encode(std::move(Element));
+//             std::vector<UniquePacketPtr> VectorPacket = m_VideoEncoder.Encode(std::move(Element));
 //             for(auto& SubElement : VectorPacket)
 //             {
 //                 m_Muxer.WritePacket(std::move(SubElement));
@@ -198,19 +198,19 @@ bool VideoRecorder::ConfigVideo()
     m_ColorConvert.ConfigColorConvert(ConvertConfig);
     EncoderConfig EncoderConfig = {width, height, MediaType::VIDEO};
     
-    if(m_Encoder.ConfigEncoder(EncoderConfig) == false)
+    if(m_VideoEncoder.ConfigEncoder(EncoderConfig) == false)
     {
         LOGE("Config encoder fail");
         return false;
     }
     LOGI(
     "Encoder TB = {}/{}",
-    m_Encoder.GetVideoContext()->time_base.num,
-    m_Encoder.GetVideoContext()->time_base.den
+    m_VideoEncoder.GetVideoContext()->time_base.num,
+    m_VideoEncoder.GetVideoContext()->time_base.den
     );
     LOGI("Config success");
 
-    if(m_Muxer.Config({width, height, m_Encoder.GetVideoContext().get(), nullptr, "mp4", m_Config.PathVideoOutput}) == false)
+    if(m_Muxer.Config({width, height, m_VideoEncoder.GetVideoContext().get(), nullptr, "mp4", m_Config.PathVideoOutput}) == false)
     {
         LOGE("Config muxer fail");
         return false;
@@ -251,7 +251,7 @@ void VideoRecorder::CheckTimeRecorded()
 
 void VideoRecorder::FlushEncoder()
 {
-    std::vector<UniquePacketPtr> VectorEncoder = m_Encoder.Encode(nullptr);
+    std::vector<UniquePacketPtr> VectorEncoder = m_VideoEncoder.Encode(nullptr);
     for (auto& Packet : VectorEncoder)
     {
         if (Packet == nullptr)

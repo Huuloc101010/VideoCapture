@@ -18,6 +18,7 @@
 #include "ColorConvert.h"
 #include "AlsaCapture.h"
 #include "AudioConvert.h"
+#include "VideoEncoder.h"
 
 class VideoRecorder
 {
@@ -33,7 +34,7 @@ private:
     void CheckTimeRecorded();
     void FlushEncoder();
     V4l2Capture          m_V4l2Capture;
-    Encoder              m_Encoder;
+    VideoEncoder         m_VideoEncoder;
     Muxer                m_Muxer;
     ColorConvert         m_ColorConvert;
     VideoRecorderConfig  m_Config;
