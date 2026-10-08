@@ -16,6 +16,7 @@ extern "C"
     #include <libavutil/opt.h>
     #include <libavdevice/avdevice.h>
     #include <libavutil/avutil.h>
+    #include <libavutil/channel_layout.h>
 }
 
 enum class CaptureType : uint8_t
@@ -118,8 +119,10 @@ using UniqueFramePtr      = std::unique_ptr<AVFrame, UniquePtrDeleterLevel2<AVFr
 using UniquePacketPtr     = std::unique_ptr<AVPacket, UniquePtrDeleterLevel2<AVPacket, av_packet_free>>;
 using UniqueFormatContext = std::unique_ptr<AVFormatContext, UniquePtrDeleterLevel2<AVFormatContext, avformat_close_input>>;
 using UniqueCodecContext  = std::unique_ptr<AVCodecContext, UniquePtrDeleterLevel2<AVCodecContext, avcodec_free_context>>;
+using UniqueSwrContext    = std::unique_ptr<SwrContext, UniquePtrDeleterLevel2<SwrContext, swr_free>>;
 using AVCodecPtr          = AVCodec *;
 using AVStreamPtr         = AVStream *;
+using AVCodecParPtr       = AVCodecParameters *;
 
 struct MuxerConfig
 {
@@ -129,6 +132,13 @@ struct MuxerConfig
     AVCodecContext* AudioCodecContex;
     std::string Extension;
     std::string VideoName;
+};
+
+struct AudioConvertConfig
+{
+    AVStreamPtr AudioStream;
+    int         SampleRate;      // 48000
+    int         ChannelLayout;   // Mono or stereo
 };
 
 template<typename T>

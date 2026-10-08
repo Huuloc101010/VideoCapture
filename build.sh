@@ -1,11 +1,12 @@
 #!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 build()
 {
-    cmake -S . -B tmp \
+    cmake -S ${SCRIPT_DIR} -B ${SCRIPT_DIR}/tmp \
     -G "Unix Makefiles" \
     -DCMAKE_CXX_COMPILER=g++-13
 
-    cmake --build tmp -j$(nproc)
+    cmake --build ${SCRIPT_DIR}/tmp -j$(nproc)
 }
 
 rebuild()
@@ -17,7 +18,7 @@ rebuild()
 clean()
 {
     echo 'Cleaning. Deleting tmp directory'
-    rm -rf tmp
+    rm -rf ${SCRIPT_DIR}/tmp
 }
 
 if [ "$1" = "build" ]

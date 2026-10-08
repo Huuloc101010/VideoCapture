@@ -56,17 +56,17 @@ bool V4l2Capture::FFmpegConfig()
     AVFormatContext* FormatContext = nullptr;
     int Retval = avformat_open_input(&FormatContext, m_Config.Device.c_str(), const_cast<AVInputFormat*>(InputFormat), &Opts);
     m_FormatContext.reset(FormatContext);
-    if(m_FormatContext == nullptr)
-    {
-        LOGE("Format context is null");
-        return false;
-    }
-
+    
     if(Retval < 0)
     {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(Retval, errbuf, sizeof(errbuf));
         LOGE("Can not open device {}: {}", m_Config.Device, errbuf);
+        return false;
+    }
+    if(m_FormatContext == nullptr)
+    {
+        LOGE("Format context is null");
         return false;
     }
 
@@ -115,6 +115,8 @@ bool V4l2Capture::FFmpegConfig()
     );
 
     LOGI("V4L2 init success: {} ({}, {} fps)", m_Config.Device, res_str, m_Config.FPS);
+    AVCodecParPtr CodecPar = Stream->codecpar;
+    LOGI("Video sample format: {}", Utils::GetInstance().GetSampleFormatName(MediaType::VIDEO , CodecPar->format));
     return true;
 }
 

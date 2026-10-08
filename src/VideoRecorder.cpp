@@ -8,36 +8,16 @@
 void VideoRecorder::Record()
 {
     m_IsRunning = true;
-    constexpr int width = 640;
-    constexpr int height = 480;
-    CaptureType type = CaptureType::V4L2_NATIVE;
-    CaptureType type2 = CaptureType::FFMPEG_CAPTURE;
-    V4l2CaptureConfig Config = {type2, m_Config.PathDevice, width, height, 30, AV_PIX_FMT_YUYV422};
-    LOGW("type {}", (int)type);
-
-    if(m_V4l2Capture.Config(Config) == false)
+    if(ConfigVideo() == false)
     {
-        LOGE("Config fail");
+        LOGE("Config Video fail");
         return;
     }
-    ColorConvertConfig ConvertConfig = {width, height, AV_PIX_FMT_YUYV422};
-    
-    m_ColorConvert.ConfigColorConvert(ConvertConfig);
-    EncoderConfig EncoderConfig = {width, height, MediaType::VIDEO};
-    
-    if(m_Encoder.ConfigEncoder(EncoderConfig) == false)
+    if(ConfigAudio() == false)
     {
-        LOGE("Config encoder fail");
+        LOGE("Config Audio fail");
         return;
     }
-    LOGI(
-    "Encoder TB = {}/{}",
-    m_Encoder.GetVideoContext()->time_base.num,
-    m_Encoder.GetVideoContext()->time_base.den
-    );
-    LOGI("Config success");
-
-    m_Muxer.Config({width, height, m_Encoder.GetVideoContext().get(), nullptr, "mp4", m_Config.PathVideoOutput});
     m_Muxer.WriteHeader();
     auto Start = std::chrono::steady_clock::now();
     int64_t FirstPts = AV_NOPTS_VALUE;
@@ -115,13 +95,151 @@ void VideoRecorder::Record()
     m_Muxer.WriteTrailer();
 }
 
+// void VideoRecorder::Record()
+// {
+//     m_IsRunning = true;
+
+//     std::ofstream File("audio.raw", std::ios::binary);
+
+//     if (!File.is_open())
+//     {
+//         LOGE("Can not open audio.raw");
+//         return;
+//     }
+
+//     AudioConvertConfig Config = {m_AlsaCapture.GetStream(), 48000, AV_CH_LAYOUT_STEREO};
+//     m_AudioConvert.Config(Config);
+//     m_Muxer.WriteHeader();
+//     uint64_t FirstTimeStamp = AV_NOPTS_VALUE;
+//     for (int i = 0; i < 70; ++i)
+//     {
+//         UniquePacketPtr Packet = m_AlsaCapture.ReadPacket();
+//         if(Packet == nullptr)
+//         {
+//             LOGE("Packet is nullptr");
+//             return;
+//         }
+//         // Save first timestamp
+//         if(FirstTimeStamp == AV_NOPTS_VALUE)
+//         {
+//             FirstTimeStamp = Packet->dts;
+//         }
+//         Packet->pts = Packet->pts - FirstTimeStamp;
+//         LOGE("First timstamp {}", FirstTimeStamp);
+//         LOGE("Packet->pts {}", Packet->pts);
+//         int num = m_AlsaCapture.GetStream()->time_base.num;
+//         int den = m_AlsaCapture.GetStream()->time_base.den;
+//         LOGE("num {}", num);
+//         LOGE("den {}", den);
+//         LOGE("Time {}", Packet->pts * num / (double)den);
+//         LOGE("Duration {}", Packet->duration);
+//         if(!Packet)
+//         {
+//             LOGE("Read packet failed");
+//             break;
+//         }
+//         LOGE("Packet->pts {}", Packet->pts);
+//         UniqueFramePtr FrameS16P = m_AudioConvert.ConvertPacketToFrame(std::move(Packet));
+//         LOGE("FrameFPTP->pts {}", FrameS16P->pts);
+//         UniqueFramePtr FrameFPTP = m_AudioConvert.ConvertS16ToFPTP(std::move(FrameS16P));
+//         LOGE("FrameFPTP->pts {}", FrameFPTP->pts);
+//         // Split frame 4096 to 1024
+//         std::vector<UniqueFramePtr> VectorFrame = m_AudioConvert.SplitPacket(std::move(FrameFPTP));
+//         for(auto& Element : VectorFrame)
+//         {
+//             LOGW("Duration {}", Element->pkt_duration);
+//             LOGW("Timestamp pts {}", Element->pts);
+//             continue;
+//             std::vector<UniquePacketPtr> VectorPacket = m_Encoder.Encode(std::move(Element));
+//             for(auto& SubElement : VectorPacket)
+//             {
+//                 m_Muxer.WritePacket(std::move(SubElement));
+//             }
+//         }
+
+//         // LOGI(
+//         //     "Packet {}: size = {} bytes, pts = {}",
+//         //     i,
+//         //     Packet->size,
+//         //     Packet->pts
+//         // );
+//     }
+//     m_Muxer.WriteTrailer();
+
+// }
+
 void VideoRecorder::Config(const VideoRecorderConfig& Config)
 {
+    // Calculate time
     m_Config = Config;
     m_TimeRecord = 0;
     m_TimeRecord += m_Config.Time.Hour    * 60 * 60;
     m_TimeRecord += m_Config.Time.Minutes * 60;
     m_TimeRecord += m_Config.Time.Second;
+    if(ConfigVideo() == false)
+    {
+        LOGE("Config Video fail");
+        return;
+    }
+    if(ConfigAudio() == false)
+    {
+        LOGE("Config Audio fail");
+        return;
+    }
+}
+
+bool VideoRecorder::ConfigVideo()
+{
+    constexpr int width = 640;
+    constexpr int height = 480;
+    CaptureType type = CaptureType::V4L2_NATIVE;
+    CaptureType type2 = CaptureType::FFMPEG_CAPTURE;
+    V4l2CaptureConfig Config = {type2, m_Config.PathDevice, width, height, 30, AV_PIX_FMT_YUYV422};
+    LOGW("type {}", (int)type);
+
+    if(m_V4l2Capture.Config(Config) == false)
+    {
+        LOGE("Config fail");
+        return false;
+    }
+    ColorConvertConfig ConvertConfig = {width, height, AV_PIX_FMT_YUYV422};
+    
+    m_ColorConvert.ConfigColorConvert(ConvertConfig);
+    EncoderConfig EncoderConfig = {width, height, MediaType::VIDEO};
+    
+    if(m_Encoder.ConfigEncoder(EncoderConfig) == false)
+    {
+        LOGE("Config encoder fail");
+        return false;
+    }
+    LOGI(
+    "Encoder TB = {}/{}",
+    m_Encoder.GetVideoContext()->time_base.num,
+    m_Encoder.GetVideoContext()->time_base.den
+    );
+    LOGI("Config success");
+
+    if(m_Muxer.Config({width, height, m_Encoder.GetVideoContext().get(), nullptr, "mp4", m_Config.PathVideoOutput}) == false)
+    {
+        LOGE("Config muxer fail");
+        return false;
+    }
+    return true;
+}
+
+bool VideoRecorder::ConfigAudio()
+{
+    LOGE("VideoRecorder::ConfigAudio()");
+    if(m_AlsaCapture.Config({"hw:0,0", "48000", "2"}))
+    {
+        LOGI("Config alsa success");
+    }
+    AVStream* Stream = m_AlsaCapture.GetStream();
+
+    LOGI("Sample rate: {}", Stream->codecpar->sample_rate);
+    //LOGI("Channels: {}", Stream->codecpar->ch_layout.nb_channels);
+    LOGI("Sample format: {}", Stream->codecpar->format);
+    return true;
 }
 
 void VideoRecorder::CheckTimeRecorded()

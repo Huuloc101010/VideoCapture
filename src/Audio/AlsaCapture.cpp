@@ -1,4 +1,5 @@
 #include "AlsaCapture.h"
+#include "Utils.h"
 
 bool AlsaCapture::Config(const AlsaCaptureConfig& Config)
 {
@@ -68,12 +69,19 @@ bool AlsaCapture::Config(const AlsaCaptureConfig& Config)
         return false;
     }
     AVStreamPtr Stream = GetStream();
-
-    LOGI("sample_rate = {}", Stream->codecpar->sample_rate);
-    //LOGI("channels    = {}", Stream->codecpar->ch_layout.nb_channels);
-    LOGI("format      = {}", Stream->codecpar->format);
-    LOGI("codec_id    = {}", (int)Stream->codecpar->codec_id);
-
+    if(Stream != nullptr)
+    {
+        LOGI("sample_rate = {}", Stream->codecpar->sample_rate);
+        LOGI("format      = {}", Stream->codecpar->format);
+        LOGI("codec_id    = {}", (int)Stream->codecpar->codec_id);
+        AVCodecParPtr CodecPar = Stream->codecpar;
+        LOGI("Audio sample format: {}", Utils::GetInstance().GetSampleFormatName(MediaType::AUDIO , CodecPar->format));
+    }
+    else
+    {
+        LOGE("Stream is nullptr");
+    }
+    
     LOGI("Alsa init success");
     return true;
 }

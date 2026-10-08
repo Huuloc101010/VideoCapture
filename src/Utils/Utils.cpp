@@ -36,3 +36,56 @@ double Utils::GetTimeStamp(const AVRational& Rational, long long Time)
     }
     return ((double)Rational.num/Rational.den) * Time;
 }
+
+std::string Utils::GetSampleFormatName(const MediaType& MediaType, const int Format)
+{
+    std::string Retval;
+    switch(MediaType)
+    {
+        case MediaType::AUDIO:
+        {
+            Retval = av_get_sample_fmt_name((AVSampleFormat)Format);
+            break;
+        }
+        case MediaType::VIDEO:
+        {
+            Retval = av_get_pix_fmt_name((AVPixelFormat)Format);
+            break;
+        }
+        default:
+        {
+            LOGE("Do not support this Mediatype");
+        }
+    }
+    return Retval;
+}
+
+void Utils::ConvertTimestamp(UniqueFramePtr& Frame , const AVRational& OldTimestamp, const AVRational& NewTimestamp)
+{
+    if((Frame == nullptr) || (av_cmp_q(OldTimestamp, NewTimestamp) == 0))
+    {
+        return;
+    }
+    if(Frame->pts == AV_NOPTS_VALUE)
+    {
+        LOGW("Timestamp invalid: AV_NOPTS_VALUE");
+        return;
+    }
+    Frame->pts      = av_rescale_q(Frame->pts, OldTimestamp, NewTimestamp);
+    Frame->pkt_duration = av_rescale_q(Frame->pkt_duration, OldTimestamp, NewTimestamp);
+    Frame->pkt_dts = av_rescale_q(Frame->pkt_dts, OldTimestamp, NewTimestamp);
+}
+
+void Utils::ConvertTimestamp(UniquePacketPtr& Packet , const AVRational& OldTimestamp, const AVRational& NewTimestamp)
+{
+    if((Packet == nullptr) || (av_cmp_q(OldTimestamp, NewTimestamp) == 0))
+    {
+        return;
+    }
+    if(Packet->pts == AV_NOPTS_VALUE)
+    {
+        LOGW("Timestamp invalid: AV_NOPTS_VALUE");
+        return;
+    }
+    av_packet_rescale_ts(Packet.get(), OldTimestamp, NewTimestamp);
+}
