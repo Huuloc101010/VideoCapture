@@ -28,13 +28,13 @@ bool Utils::SavePPM(const std::string& filename, const std::vector<uint8_t>& rgb
     return true;
 }
 
-double Utils::GetTimeStamp(const AVRational& Rational, long long Time)
+uint64_t Utils::GetTimeStamp(const AVRational& Rational, uint64_t Time)
 {
     if(Rational.num == 0)
     {
         return 0;
     }
-    return ((double)Rational.num/Rational.den) * Time;
+    return ((uint64_t)Rational.num/Rational.den) * Time;
 }
 
 std::string Utils::GetSampleFormatName(const MediaType& MediaType, const int Format)
@@ -88,4 +88,13 @@ void Utils::ConvertTimestamp(const UniquePacketPtr& Packet , const AVRational& O
         return;
     }
     av_packet_rescale_ts(Packet.get(), OldTimestamp, NewTimestamp);
+}
+
+void Utils::PrintTimeStamp(const AVRational& Timebase, const uint64_t Timstamp)
+{
+    LOGI("Timebase: {}/{}", Timebase.num, Timebase.den);
+    if(Timstamp != UINT64_MAX)
+    {
+        LOGI("Packet or Frame timestamp: {}", GetTimeStamp(Timebase, Timstamp));
+    }
 }

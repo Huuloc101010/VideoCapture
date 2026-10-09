@@ -30,10 +30,10 @@ void VideoRecorder::Record()
         }
         else
         {
+            // Reset present timestamp
             packet->pts = packet->pts - FirstPts;
         }
-        LOGI(
-        "Frame {}, pts={}, size={}", FrameCount, packet->pts, packet->size);
+        LOGI("Frame {}, pts={}, size={}", FrameCount, packet->pts, packet->size);
         UniqueFramePtr frame = m_ColorConvert.ConvertPacketToFrame(std::move(packet));
         if(frame == nullptr)
         {
@@ -48,11 +48,7 @@ void VideoRecorder::Record()
         }
         // LOGI("Frame pts {}", YUV420->pts);
         // Capture TB -> Encoder TB
-        YUV420->pts = av_rescale_q(
-            YUV420->pts,
-            m_V4l2Capture.GetStream()->time_base,
-            m_VideoEncoder.GetVideoContext()->time_base
-        );
+        Utils::GetInstance().ConvertTimestamp(YUV420, m_V4l2Capture.GetTimeBase(), m_VideoEncoder.GetTimeBase());
         std::vector<UniquePacketPtr>  VectorEncoder =  m_VideoEncoder.Encode(std::move(YUV420));
         // LOGI("VectorEncoder.size()={}", VectorEncoder.size());
         
