@@ -36,7 +36,7 @@ std::vector<UniquePacketPtr> Encoder::Encode(UniqueFramePtr Frame)
     return VectorPacket;
 }
 
-const UniqueCodecContext& Encoder::GetVideoContext() const
+const UniqueCodecContext& Encoder::GetCodecContext() const
 {
     return m_CodecContext;
 }

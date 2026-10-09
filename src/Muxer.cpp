@@ -80,11 +80,11 @@ bool Muxer::ConfigAudio()
         LOGE("Audio stream == nullptr");
         return false;
     }
-    // if (m_Config.AudioCodecContext == nullptr)
-    // {
-    //     LOGE("AudioCodecContext is nullptr");
-    //     return false;
-    // }
+    if (m_Config.AudioCodecContext == nullptr)
+    {
+        LOGE("AudioCodecContext is nullptr");
+        return false;
+    }
     
     // Copy encoder information -> stream codecpar
     int Ret = avcodec_parameters_from_context(m_AudioStream->codecpar, m_Config.VideoCodecContext);

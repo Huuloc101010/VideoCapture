@@ -150,6 +150,8 @@ void VideoRecorder::Record()
 
 bool VideoRecorder::Config(const VideoRecorderConfig& Config)
 {
+    constexpr int width = 640;
+    constexpr int height = 480;
     // Calculate time
     m_Config = Config;
     m_TimeRecord = 0;
@@ -164,6 +166,12 @@ bool VideoRecorder::Config(const VideoRecorderConfig& Config)
     if(ConfigAudio() == false)
     {
         LOGE("Config Audio fail");
+        return false;
+    }
+
+    if(m_Muxer.Config({width, height, m_VideoEncoder.GetCodecContext().get(), m_AudioEncoder.GetCodecContext().get(), "mp4", m_Config.PathVideoOutput}) == false)
+    {
+        LOGE("Config muxer fail");
         return false;
     }
     return true;
@@ -193,33 +201,36 @@ bool VideoRecorder::ConfigVideo()
         LOGE("Config encoder fail");
         return false;
     }
-    LOGI(
-    "Encoder TB = {}/{}",
-    m_VideoEncoder.GetVideoContext()->time_base.num,
-    m_VideoEncoder.GetVideoContext()->time_base.den
-    );
     LOGI("Config success");
 
-    if(m_Muxer.Config({width, height, m_VideoEncoder.GetVideoContext().get(), m_AudioEncoder.GetVideoContext().get(), "mp4", m_Config.PathVideoOutput}) == false)
-    {
-        LOGE("Config muxer fail");
-        return false;
-    }
     return true;
 }
 
 bool VideoRecorder::ConfigAudio()
 {
-    LOGE("VideoRecorder::ConfigAudio()");
-    if(m_AlsaCapture.Config({"hw:0,0", "48000", "2"}))
+    constexpr int width = 640;
+    constexpr int height = 480;
+    if(m_AlsaCapture.Config({"hw:0,0", "48000", "2"}) == false)
     {
-        LOGI("Config alsa success");
+        LOGI("Config alsa fail");
+        return false;
     }
     AVStream* Stream = m_AlsaCapture.GetStream();
-
+    if(Stream == nullptr)
+    {
+        LOGE("Stream alsa null");
+        return false;
+    }
     LOGI("Sample rate: {}", Stream->codecpar->sample_rate);
     //LOGI("Channels: {}", Stream->codecpar->ch_layout.nb_channels);
     LOGI("Sample format: {}", Stream->codecpar->format);
+    EncoderConfig EncoderConfig = {width, height, MediaType::VIDEO};
+    if(m_AudioEncoder.ConfigEncoder(EncoderConfig) == false)
+    {
+        LOGE("Config encoder fail");
+        return false;
+    }
+
     return true;
 }
 

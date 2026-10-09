@@ -12,7 +12,7 @@ public:
     ~Encoder() = default;
     virtual bool ConfigEncoder(const EncoderConfig& Config) = 0;
     std::vector<UniquePacketPtr> Encode(UniqueFramePtr Frame);
-    const UniqueCodecContext& GetVideoContext() const;
+    const UniqueCodecContext& GetCodecContext() const;
     AVRational GetTimeBase();
 
 protected:
