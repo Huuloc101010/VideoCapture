@@ -13,57 +13,8 @@ void VideoRecorder::Record()
     int64_t FirstPts = AV_NOPTS_VALUE;
     std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
     int FrameCount = 0;
-    while(m_IsRunning == true)
-    {
-        UniquePacketPtr packet = m_V4l2Capture.ReadPacket();
-        FrameCount ++;
-        if(packet == nullptr)
-        {
-            LOGE("packet is null");
-            break;
-        }
-        // Save first timstamp
-        if(FirstPts == AV_NOPTS_VALUE)
-        {
-            FirstPts = packet->pts;
-            packet->pts = 0;
-        }
-        else
-        {
-            // Reset present timestamp
-            packet->pts = packet->pts - FirstPts;
-        }
-        LOGI("Frame {}, pts={}, size={}", FrameCount, packet->pts, packet->size);
-        UniqueFramePtr frame = m_ColorConvert.ConvertPacketToFrame(std::move(packet));
-        if(frame == nullptr)
-        {
-            LOGE("frame is nullptr");
-            break;
-        }
-        UniqueFramePtr YUV420 = m_ColorConvert.ConvertYUV422ToYUV420(std::move(frame));
-        if(YUV420 == nullptr)
-        {
-            LOGE("YUV420 is nullptr");
-            break;
-        }
-        // LOGI("Frame pts {}", YUV420->pts);
-        // Capture TB -> Encoder TB
-        Utils::GetInstance().ConvertTimestamp(YUV420, m_V4l2Capture.GetTimeBase(), m_VideoEncoder.GetTimeBase());
-        std::vector<UniquePacketPtr>  VectorEncoder =  m_VideoEncoder.Encode(std::move(YUV420));
-        // LOGI("VectorEncoder.size()={}", VectorEncoder.size());
-        
-        for (auto& Packet : VectorEncoder)
-        {
-            if (Packet == nullptr)
-            {
-                LOGE("Packet is nullptr");
-                continue;
-            }
-
-        Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetVideoTimeBase());
-        m_Muxer.WriteVideoPacket(std::move(Packet));
-        }
-    }
+    //ThreadCaptureVideo();
+    ThreadCaptureAudio();
     // Flush encoder
     auto End = std::chrono::steady_clock::now();
     FlushVideoEncoder();
@@ -295,4 +246,122 @@ void VideoRecorder::FlushAudioEncoder()
 void VideoRecorder::Stop()
 {
     m_IsRunning = false;
+}
+
+void VideoRecorder::ThreadCaptureVideo()
+{
+    int64_t FirstPts = AV_NOPTS_VALUE;
+    int FrameCount = 0;
+    while(m_IsRunning == true)
+    {
+        UniquePacketPtr packet = m_V4l2Capture.ReadPacket();
+        FrameCount ++;
+        if(packet == nullptr)
+        {
+            LOGE("packet is null");
+            break;
+        }
+        // Save first timstamp
+        if(FirstPts == AV_NOPTS_VALUE)
+        {
+            FirstPts = packet->pts;
+            packet->pts = 0;
+        }
+        else
+        {
+            // Reset present timestamp
+            packet->pts = packet->pts - FirstPts;
+        }
+        LOGI("Frame {}, pts={}, size={}", FrameCount, packet->pts, packet->size);
+        UniqueFramePtr frame = m_ColorConvert.ConvertPacketToFrame(std::move(packet));
+        if(frame == nullptr)
+        {
+            LOGE("frame is nullptr");
+            break;
+        }
+        UniqueFramePtr YUV420 = m_ColorConvert.ConvertYUV422ToYUV420(std::move(frame));
+        if(YUV420 == nullptr)
+        {
+            LOGE("YUV420 is nullptr");
+            break;
+        }
+        // LOGI("Frame pts {}", YUV420->pts);
+        // Capture TB -> Encoder TB
+        Utils::GetInstance().ConvertTimestamp(YUV420, m_V4l2Capture.GetTimeBase(), m_VideoEncoder.GetTimeBase());
+        std::vector<UniquePacketPtr>  VectorEncoder =  m_VideoEncoder.Encode(std::move(YUV420));
+        // LOGI("VectorEncoder.size()={}", VectorEncoder.size());
+        
+        for (auto& Packet : VectorEncoder)
+        {
+            if (Packet == nullptr)
+            {
+                LOGE("Packet is nullptr");
+                continue;
+            }
+            Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetVideoTimeBase());
+            m_Muxer.WriteVideoPacket(std::move(Packet));
+        }
+    }
+}
+
+void VideoRecorder::ThreadCaptureAudio()
+{
+    int FrameCount = 0;
+    int64_t FirstTimeStamp = AV_NOPTS_VALUE;
+    //while(m_IsRunning == true)
+    for(int i = 0; i <= 100; ++i)
+    {
+        UniquePacketPtr Packet = m_AlsaCapture.ReadPacket();
+        if(Packet == nullptr)
+        {
+            LOGE("Packet is nullptr");
+            return;
+        }
+        // Save first timestamp
+        if(FirstTimeStamp == AV_NOPTS_VALUE)
+        {
+            FirstTimeStamp = Packet->pts;
+        }
+        // Reset present timstamp
+        Packet->pts = Packet->pts - FirstTimeStamp;
+
+        UniqueFramePtr FrameS16P = m_AudioConvert.ConvertPacketToFrame(std::move(Packet));
+        if(FrameS16P == nullptr)
+        {
+            LOGE("FrameS16P == nullptr");
+            return;
+        }
+
+        UniqueFramePtr FrameFPTP = m_AudioConvert.ConvertS16ToFPTP(std::move(FrameS16P));
+        if(FrameFPTP == nullptr)
+        {
+            LOGE("FrameFPTP = nullptr");
+            return;
+        }
+        // Split frame 4096 to 1024
+        std::vector<UniqueFramePtr> VectorFrame = m_AudioConvert.SplitPacket(std::move(FrameFPTP));
+        LOGE("Size VectorFrame = {}", VectorFrame.size());
+        for(auto& Element : VectorFrame)
+        {
+            LOGW("Duration {}", Element->pkt_duration);
+            LOGW("Timestamp pts {}", Element->pts);
+            Utils::GetInstance().ConvertTimestamp(Element, m_AlsaCapture.GetTimeBase(), m_AudioEncoder.GetTimeBase());
+            std::vector<UniquePacketPtr> VectorPacket = {};
+            if(i < 100)
+            {
+                VectorPacket = m_AudioEncoder.Encode(std::move(Element));
+            }
+            else
+            {
+                VectorPacket = m_AudioEncoder.Encode(nullptr);
+            }
+            for(auto& SubElement : VectorPacket)
+            {
+                Utils::GetInstance().ConvertTimestamp(SubElement, m_AudioEncoder.GetTimeBase(), m_Muxer.GetAudioTimeBase());
+                Utils::GetInstance().PrintTimeStamp(m_Muxer.GetAudioTimeBase(), SubElement->pts);
+                LOGE("Packet->pts = {}", SubElement->pts);
+                m_Muxer.WriteAudioPacket(std::move(SubElement));
+            }
+        }
+    }
 }

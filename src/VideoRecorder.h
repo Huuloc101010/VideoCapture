@@ -35,6 +35,8 @@ private:
     void CheckTimeRecorded();
     void FlushVideoEncoder();
     void FlushAudioEncoder();
+    void ThreadCaptureVideo();
+    void ThreadCaptureAudio();
 
     V4l2Capture          m_V4l2Capture;
     VideoEncoder         m_VideoEncoder;
