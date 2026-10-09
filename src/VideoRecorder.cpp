@@ -15,9 +15,10 @@ void VideoRecorder::Record()
     int FrameCount = 0;
     //ThreadCaptureVideo();
     ThreadCaptureAudio();
-    // Flush encoder
     auto End = std::chrono::steady_clock::now();
+    // Flush video and audio encoder
     FlushVideoEncoder();
+    FlushAudioEncoder();
     double Seconds =
     std::chrono::duration<double>(End - Start).count();
 
@@ -26,82 +27,6 @@ void VideoRecorder::Record()
     m_Muxer.WriteTrailer();
 }
 
-/*
-void VideoRecorder::Record()
-{
-    m_IsRunning = true;
-    m_Muxer.WriteHeader();
-    auto Start = std::chrono::steady_clock::now();
-    std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
-    int FrameCount = 0;
-    int64_t FirstTimeStamp = AV_NOPTS_VALUE;
-    //while(m_IsRunning == true)
-    for(int i = 0; i <= 100; ++i)
-    {
-        UniquePacketPtr Packet = m_AlsaCapture.ReadPacket();
-        if(Packet == nullptr)
-        {
-            LOGE("Packet is nullptr");
-            return;
-        }
-        // Save first timestamp
-        if(FirstTimeStamp == AV_NOPTS_VALUE)
-        {
-            FirstTimeStamp = Packet->pts;
-        }
-        // Reset present timstamp
-        Packet->pts = Packet->pts - FirstTimeStamp;
-
-        UniqueFramePtr FrameS16P = m_AudioConvert.ConvertPacketToFrame(std::move(Packet));
-        if(FrameS16P == nullptr)
-        {
-            LOGE("FrameS16P = nullptr");
-            return;
-        }
-
-        UniqueFramePtr FrameFPTP = m_AudioConvert.ConvertS16ToFPTP(std::move(FrameS16P));
-        if(FrameFPTP == nullptr)
-        {
-            LOGE("FrameFPTP = nullptr");
-            return;
-        }
-        // Split frame 4096 to 1024
-        std::vector<UniqueFramePtr> VectorFrame = m_AudioConvert.SplitPacket(std::move(FrameFPTP));
-        LOGE("Size VectorFrame = {}", VectorFrame.size());
-        for(auto& Element : VectorFrame)
-        {
-            LOGW("Duration {}", Element->pkt_duration);
-            LOGW("Timestamp pts {}", Element->pts);
-            Utils::GetInstance().ConvertTimestamp(Element, m_AlsaCapture.GetTimeBase(), m_AudioEncoder.GetTimeBase());
-            std::vector<UniquePacketPtr> VectorPacket = {};
-            if(i < 100)
-            {
-                VectorPacket = m_AudioEncoder.Encode(std::move(Element));
-            }
-            else
-            {
-                VectorPacket = m_AudioEncoder.Encode(nullptr);
-            }
-            for(auto& SubElement : VectorPacket)
-            {
-                Utils::GetInstance().ConvertTimestamp(SubElement, m_AudioEncoder.GetTimeBase(), m_Muxer.GetAudioTimeBase());
-                Utils::GetInstance().PrintTimeStamp(m_Muxer.GetAudioTimeBase(), SubElement->pts);
-                LOGE("Packet->pts = {}", SubElement->pts);
-                m_Muxer.WriteAudioPacket(std::move(SubElement));
-            }
-        }
-    }
-    // Flush encoder
-    auto End = std::chrono::steady_clock::now();
-    //FlushEncoder();
-    double Seconds =
-    std::chrono::duration<double>(End - Start).count();
-
-    LOGI("100 frames captured in {} seconds", Seconds);
-    LOGI("Actual FPS = {}", FrameCount / Seconds);
-    m_Muxer.WriteTrailer();
-}
-*/
 bool VideoRecorder::Config(const VideoRecorderConfig& Config)
 {
     constexpr int width = 640;
@@ -308,8 +233,7 @@ void VideoRecorder::ThreadCaptureAudio()
 {
     int FrameCount = 0;
     int64_t FirstTimeStamp = AV_NOPTS_VALUE;
-    //while(m_IsRunning == true)
-    for(int i = 0; i <= 100; ++i)
+    while(m_IsRunning == true)
     {
         UniquePacketPtr Packet = m_AlsaCapture.ReadPacket();
         if(Packet == nullptr)
@@ -340,26 +264,13 @@ void VideoRecorder::ThreadCaptureAudio()
         }
         // Split frame 4096 to 1024
         std::vector<UniqueFramePtr> VectorFrame = m_AudioConvert.SplitPacket(std::move(FrameFPTP));
-        LOGE("Size VectorFrame = {}", VectorFrame.size());
         for(auto& Element : VectorFrame)
         {
-            LOGW("Duration {}", Element->pkt_duration);
-            LOGW("Timestamp pts {}", Element->pts);
             Utils::GetInstance().ConvertTimestamp(Element, m_AlsaCapture.GetTimeBase(), m_AudioEncoder.GetTimeBase());
-            std::vector<UniquePacketPtr> VectorPacket = {};
-            if(i < 100)
-            {
-                VectorPacket = m_AudioEncoder.Encode(std::move(Element));
-            }
-            else
-            {
-                VectorPacket = m_AudioEncoder.Encode(nullptr);
-            }
+            std::vector<UniquePacketPtr> VectorPacket = m_AudioEncoder.Encode(std::move(Element));
             for(auto& SubElement : VectorPacket)
             {
                 Utils::GetInstance().ConvertTimestamp(SubElement, m_AudioEncoder.GetTimeBase(), m_Muxer.GetAudioTimeBase());
-                Utils::GetInstance().PrintTimeStamp(m_Muxer.GetAudioTimeBase(), SubElement->pts);
-                LOGE("Packet->pts = {}", SubElement->pts);
                 m_Muxer.WriteAudioPacket(std::move(SubElement));
             }
         }
