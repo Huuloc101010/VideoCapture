@@ -60,13 +60,6 @@ void VideoRecorder::Record()
                 continue;
             }
 
-        //    LOGI("Packet pts={}, dts={}, duration={}, time_base={}/{}",
-        //         Packet->pts,
-        //         Packet->dts,
-        //         Packet->duration,
-        //         m_V4l2Capture.GetStream()->time_base.num,
-        //         m_V4l2Capture.GetStream()->time_base.den
-        //         );
         Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetTimeBase());
         m_Muxer.WritePacket(std::move(Packet));
         }
@@ -155,7 +148,7 @@ void VideoRecorder::Record()
 
 // }
 
-void VideoRecorder::Config(const VideoRecorderConfig& Config)
+bool VideoRecorder::Config(const VideoRecorderConfig& Config)
 {
     // Calculate time
     m_Config = Config;
@@ -166,13 +159,14 @@ void VideoRecorder::Config(const VideoRecorderConfig& Config)
     if(ConfigVideo() == false)
     {
         LOGE("Config Video fail");
-        return;
+        return false;
     }
     if(ConfigAudio() == false)
     {
         LOGE("Config Audio fail");
-        return;
+        return false;
     }
+    return true;
 }
 
 bool VideoRecorder::ConfigVideo()
@@ -206,7 +200,7 @@ bool VideoRecorder::ConfigVideo()
     );
     LOGI("Config success");
 
-    if(m_Muxer.Config({width, height, m_VideoEncoder.GetVideoContext().get(), nullptr, "mp4", m_Config.PathVideoOutput}) == false)
+    if(m_Muxer.Config({width, height, m_VideoEncoder.GetVideoContext().get(), m_AudioEncoder.GetVideoContext().get(), "mp4", m_Config.PathVideoOutput}) == false)
     {
         LOGE("Config muxer fail");
         return false;

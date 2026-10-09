@@ -128,8 +128,8 @@ struct MuxerConfig
 {
     int Width;
     int Height;
-    AVCodecContext* VideoCodecContex;
-    AVCodecContext* AudioCodecContex;
+    AVCodecContext* VideoCodecContext;
+    AVCodecContext* AudioCodecContext;
     std::string Extension;
     std::string VideoName;
 };

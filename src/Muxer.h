@@ -16,6 +16,7 @@ public:
 private:
     UniqueFormatContext m_FormatContext;
     AVStreamPtr         m_VideoStream;
+    AVStreamPtr         m_AudioStream;
     MuxerConfig         m_Config;
 };
 

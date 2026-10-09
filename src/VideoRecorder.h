@@ -19,13 +19,14 @@
 #include "AlsaCapture.h"
 #include "AudioConvert.h"
 #include "VideoEncoder.h"
+#include "AudioEncoder.h"
 
 class VideoRecorder
 {
 public:
     VideoRecorder() = default;
     ~VideoRecorder() = default;
-    void Config(const VideoRecorderConfig& Config);
+    bool Config(const VideoRecorderConfig& Config);
     bool ConfigVideo();
     bool ConfigAudio();
     void Record();
@@ -35,6 +36,7 @@ private:
     void FlushEncoder();
     V4l2Capture          m_V4l2Capture;
     VideoEncoder         m_VideoEncoder;
+    AudioEncoder         m_AudioEncoder;
     Muxer                m_Muxer;
     ColorConvert         m_ColorConvert;
     VideoRecorderConfig  m_Config;
