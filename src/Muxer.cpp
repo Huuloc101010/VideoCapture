@@ -126,39 +126,39 @@ bool Muxer::WriteTrailer()
     return Ret >= 0;
 }
 
-// bool Muxer::WritePacket(const UniquePacketPtr Packet)
-// {
-//     if(Packet == nullptr)
-//     {
-//         LOGE("Packet is nullptr");
-//         return false;
-//     }
-//     if(m_VideoStream == nullptr)
-//     {
-//         LOGE("Video Stream is null");
-//         return false;
-//     }
-//     Packet->stream_index = m_VideoStream->index;
-//     int Ret = av_interleaved_write_frame(m_FormatContext.get(), Packet.get());
-//     if(Ret < 0)
-//     {
-//         LOGE("Write frame fail");
-//         return false;
-//     }
-//     return true;
-// }
+bool Muxer::WriteVideoPacket(const UniquePacketPtr Packet)
+{
+    if(Packet == nullptr)
+    {
+        LOGE("Packet is nullptr");
+        return false;
+    }
+    if(m_VideoStream == nullptr)
+    {
+        LOGE("Video Stream is null");
+        return false;
+    }
+    Packet->stream_index = m_VideoStream->index;
+    int Ret = av_interleaved_write_frame(m_FormatContext.get(), Packet.get());
+    if(Ret < 0)
+    {
+        LOGE("Write frame fail");
+        return false;
+    }
+    return true;
+}
 
-// AVRational Muxer::GetTimeBase()
-// {
-//     if(m_VideoStream == nullptr)
-//     {
-//         LOGE("m_VideoStream is null");
-//         return {};
-//     }
-//     return m_VideoStream->time_base;
-// }
+AVRational Muxer::GetVideoTimeBase()
+{
+    if(m_VideoStream == nullptr)
+    {
+        LOGE("m_VideoStream is null");
+        return {};
+    }
+    return m_VideoStream->time_base;
+}
 
-bool Muxer::WritePacket(const UniquePacketPtr Packet)
+bool Muxer::WriteAudioPacket(const UniquePacketPtr Packet)
 {
     if(Packet == nullptr)
     {
@@ -180,7 +180,7 @@ bool Muxer::WritePacket(const UniquePacketPtr Packet)
     return true;
 }
 
-AVRational Muxer::GetTimeBase()
+AVRational Muxer::GetAudioTimeBase()
 {
     if(m_AudioStream == nullptr)
     {

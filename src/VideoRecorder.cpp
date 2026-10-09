@@ -61,12 +61,12 @@ void VideoRecorder::Record()
             }
 
         Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetTimeBase());
-        m_Muxer.WritePacket(std::move(Packet));
+        m_Muxer.WriteVideoPacket(std::move(Packet));
         }
     }
     // Flush encoder
     auto End = std::chrono::steady_clock::now();
-    FlushEncoder();
+    FlushVideoEncoder();
     double Seconds =
     std::chrono::duration<double>(End - Start).count();
 
@@ -133,10 +133,10 @@ void VideoRecorder::Record()
             }
             for(auto& SubElement : VectorPacket)
             {
-                Utils::GetInstance().ConvertTimestamp(SubElement, m_AudioEncoder.GetTimeBase(), m_Muxer.GetTimeBase());
-                Utils::GetInstance().PrintTimeStamp(m_Muxer.GetTimeBase(), SubElement->pts);
+                Utils::GetInstance().ConvertTimestamp(SubElement, m_AudioEncoder.GetTimeBase(), m_Muxer.GetAudioTimeBase());
+                Utils::GetInstance().PrintTimeStamp(m_Muxer.GetAudioTimeBase(), SubElement->pts);
                 LOGE("Packet->pts = {}", SubElement->pts);
-                m_Muxer.WritePacket(std::move(SubElement));
+                m_Muxer.WriteAudioPacket(std::move(SubElement));
             }
         }
     }
@@ -260,7 +260,7 @@ void VideoRecorder::CheckTimeRecorded()
     }
 }
 
-void VideoRecorder::FlushEncoder()
+void VideoRecorder::FlushVideoEncoder()
 {
     std::vector<UniquePacketPtr> VectorEncoder = m_VideoEncoder.Encode(nullptr);
     for (auto& Packet : VectorEncoder)
@@ -270,18 +270,24 @@ void VideoRecorder::FlushEncoder()
             LOGE("Packet is nullptr");
             continue;
         }
-
-
-        LOGI("Packet pts={}, dts={}, duration={}, time_base={}/{}",
-            Packet->pts,
-            Packet->dts,
-            Packet->duration,
-            m_V4l2Capture.GetStream()->time_base.num,
-            m_V4l2Capture.GetStream()->time_base.den
-            );
-        m_Muxer.WritePacket(std::move(Packet));
+        m_Muxer.WriteVideoPacket(std::move(Packet));
     }
-    LOGI("Flush encoder success");
+    LOGI("Flush video encoder success");
+}
+
+void VideoRecorder::FlushAudioEncoder()
+{
+    std::vector<UniquePacketPtr> VectorEncoder = m_AudioEncoder.Encode(nullptr);
+    for (auto& Packet : VectorEncoder)
+    {
+        if (Packet == nullptr)
+        {
+            LOGE("Packet is nullptr");
+            continue;
+        }
+        m_Muxer.WriteAudioPacket(std::move(Packet));
+    }
+    LOGI("Flush audio encoder success");
 }
 
 void VideoRecorder::Stop()

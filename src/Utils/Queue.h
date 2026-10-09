@@ -73,6 +73,12 @@ public:
         m_ConditionVariable.notify_all();
     }
 
+    int Size()
+    {
+        std::unique_lock<std::mutex> Lock(m_Mutex);
+        return m_Data.size();
+    }
+
 private:
     std::deque<T>   m_Data;
     std::mutex      m_Mutex;

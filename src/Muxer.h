@@ -9,10 +9,12 @@ public:
     bool Config(const MuxerConfig& Config);
     bool ConfigVideo();
     bool ConfigAudio();
-    bool WritePacket(const UniquePacketPtr Packet);
+    bool WriteVideoPacket(const UniquePacketPtr Packet);
+    bool WriteAudioPacket(const UniquePacketPtr Packet);
     bool WriteHeader();
     bool WriteTrailer();
-    AVRational GetTimeBase();
+    AVRational GetVideoTimeBase();
+    AVRational GetAudioTimeBase();
 private:
     UniqueFormatContext m_FormatContext;
     AVStreamPtr         m_VideoStream;

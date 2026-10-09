@@ -33,7 +33,8 @@ public:
     void Stop();
 private:
     void CheckTimeRecorded();
-    void FlushEncoder();
+    void FlushVideoEncoder();
+    void FlushAudioEncoder();
     V4l2Capture          m_V4l2Capture;
     VideoEncoder         m_VideoEncoder;
     AudioEncoder         m_AudioEncoder;
