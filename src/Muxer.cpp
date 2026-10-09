@@ -142,6 +142,9 @@ bool Muxer::WriteVideoPacket(const UniquePacketPtr Packet)
     }
     Packet->stream_index = m_VideoStream->index;
     std::lock_guard<std::mutex> Lock(m_MutexMuxer);
+    LOGE("VideoTimestamp");
+    Utils::GetInstance().PrintTimeStamp(GetVideoTimeBase(), Packet->pts);
+    Utils::GetInstance().PrintTimeStamp(GetVideoTimeBase(), Packet->dts);
     int Ret = av_interleaved_write_frame(m_FormatContext.get(), Packet.get());
     if(Ret < 0)
     {
@@ -175,6 +178,9 @@ bool Muxer::WriteAudioPacket(const UniquePacketPtr Packet)
     }
     Packet->stream_index = m_AudioStream->index;
     std::lock_guard<std::mutex> Lock(m_MutexMuxer);
+    LOGE("Audio timstamp");
+    Utils::GetInstance().PrintTimeStamp(GetAudioTimeBase(), Packet->pts);
+    Utils::GetInstance().PrintTimeStamp(GetAudioTimeBase(), Packet->dts);
     int Ret = av_interleaved_write_frame(m_FormatContext.get(), Packet.get());
     if(Ret < 0)
     {
