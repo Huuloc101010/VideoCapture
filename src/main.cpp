@@ -1,5 +1,6 @@
 #include <functional>
-#include <chrono>
+#include <csignal>
+#include <unistd.h>
 #include "VideoRecorder.h"
 #include "V4l2Capture.h"
 #include "Utils.h"
@@ -10,10 +11,28 @@
 #include "AlsaCapture.h"
 #include "VideoRecorder.h"
 
+// Use global variable for signal system
+std::function<void()> Callback;
+
+void SignalHandler(int Signal)
+{
+    LOGW("Received signal stop");
+    if(Callback)
+    {
+        Callback();
+    }
+}
+
 int main()
 {
     VideoRecorder Recorder;
-    bool Retval = Recorder.Config({"/dev/video0", "Video.mp4", {0,0,6}});
+    Callback = [&]()
+    {
+        Recorder.Stop();
+    };
+    // Register to system
+    std::signal(SIGINT, SignalHandler);
+    bool Retval = Recorder.Config({"/dev/video0", "Video.mp4", {0,0,10}});
     if(Retval == false)
     {
         return -1;
