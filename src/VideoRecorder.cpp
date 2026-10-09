@@ -30,8 +30,8 @@ void VideoRecorder::Record()
 
 bool VideoRecorder::Config(const VideoRecorderConfig& Config)
 {
-    constexpr int width = 640;
-    constexpr int height = 480;
+    const int width = Config.Width;
+    const int height = Config.Height;
     // Calculate time
     m_Config = Config;
     m_TimeRecord = 0;
@@ -49,7 +49,7 @@ bool VideoRecorder::Config(const VideoRecorderConfig& Config)
         return false;
     }
 
-    if(m_Muxer.Config({width, height, m_VideoEncoder.GetCodecContext().get(), m_AudioEncoder.GetCodecContext().get(), "mp4", m_Config.PathVideoOutput}) == false)
+    if(m_Muxer.Config({width, height, m_VideoEncoder.GetCodecContext().get(), m_AudioEncoder.GetCodecContext().get(), m_Config.TailVideo, m_Config.PathVideoOutput}) == false)
     {
         LOGE("Config muxer fail");
         return false;
@@ -59,12 +59,11 @@ bool VideoRecorder::Config(const VideoRecorderConfig& Config)
 
 bool VideoRecorder::ConfigVideo()
 {
-    constexpr int width = 640;
-    constexpr int height = 480;
+    const int width = m_Config.Width;
+    const int height = m_Config.Height;
     CaptureType type = CaptureType::V4L2_NATIVE;
     CaptureType type2 = CaptureType::FFMPEG_CAPTURE;
     V4l2CaptureConfig Config = {type2, m_Config.PathDevice, width, height, 30, AV_PIX_FMT_YUYV422};
-    LOGW("type {}", (int)type);
 
     if(m_V4l2Capture.Config(Config) == false)
     {
@@ -88,9 +87,9 @@ bool VideoRecorder::ConfigVideo()
 
 bool VideoRecorder::ConfigAudio()
 {
-    constexpr int width = 640;
-    constexpr int height = 480;
-    if(m_AlsaCapture.Config({"hw:0,0", "48000", "2"}) == false)
+    const int width = m_Config.Width;
+    const int height = m_Config.Height;
+    if(m_AlsaCapture.Config({m_Config.PathAudioDevice, m_Config.AudioSampleRate, m_Config.AudioSampleChannel}) == false)
     {
         LOGI("Config alsa fail");
         return false;
@@ -101,9 +100,6 @@ bool VideoRecorder::ConfigAudio()
         LOGE("Stream alsa null");
         return false;
     }
-    LOGI("Sample rate: {}", Stream->codecpar->sample_rate);
-    //LOGI("Channels: {}", Stream->codecpar->ch_layout.nb_channels);
-    LOGI("Sample format: {}", Stream->codecpar->format);
     EncoderConfig EncoderConfig = {width, height, MediaType::AUDIO};
     if(m_AudioEncoder.ConfigEncoder(EncoderConfig) == false)
     {
@@ -111,7 +107,7 @@ bool VideoRecorder::ConfigAudio()
         return false;
     }
 
-    AudioConvertConfig Config = {m_AlsaCapture.GetStream(), 48000, AV_CH_LAYOUT_STEREO};
+    AudioConvertConfig Config = {m_AlsaCapture.GetStream(), std::stoi(m_Config.AudioSampleRate), AV_CH_LAYOUT_STEREO};
     if(m_AudioConvert.Config(Config) == false)
     {
         LOGE("Audio convert fail");

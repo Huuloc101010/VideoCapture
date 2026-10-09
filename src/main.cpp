@@ -32,7 +32,18 @@ int main()
     };
     // Register to system
     std::signal(SIGINT, SignalHandler);
-    bool Retval = Recorder.Config({"/dev/video0", "Video.mp4", {0,0,10}});
+    VideoRecorderConfig RecorderConfig;
+    RecorderConfig.PathDevice = "/dev/video0";
+    RecorderConfig.PathVideoOutput = "Video.mp4";
+    RecorderConfig.TailVideo = "mp4";
+    RecorderConfig.Width = 640;
+    RecorderConfig.Height = 480;
+    RecorderConfig.PathAudioDevice = "hw:0,0";
+    RecorderConfig.AudioSampleRate = "48000";
+    RecorderConfig.AudioSampleChannel = "2";
+    RecorderConfig.Time = {0,0,10};
+
+    bool Retval = Recorder.Config(RecorderConfig);
     if(Retval == false)
     {
         return -1;

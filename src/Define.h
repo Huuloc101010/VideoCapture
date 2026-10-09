@@ -83,9 +83,17 @@ struct VideoRecorderConfig
 {
     std::string PathDevice;
     std::string PathVideoOutput;
-    TimeRecord Time;
-};
+    std::string TailVideo;
+    int Width;
+    int Height;
 
+    // Audio
+    std::string PathAudioDevice;
+    std::string AudioSampleRate;
+    std::string AudioSampleChannel; 
+    TimeRecord Time;
+
+};
 template<typename T, void(*FreeFunction)(T*)>
 class UniquePtrDeleterLevel1
 {
