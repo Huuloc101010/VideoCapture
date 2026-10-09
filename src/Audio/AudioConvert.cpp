@@ -113,40 +113,74 @@ UniqueFramePtr AudioConvert::ConvertS16ToFPTP(UniqueFramePtr Frame)
     return OutputFrame;
 }
 
+// Spit Frame 4096 to 1024
 std::vector<UniqueFramePtr> AudioConvert::SplitPacket(UniqueFramePtr Frame)
 {
-    // Hardcode 4096 to 1024
-    std::vector<UniqueFramePtr> Retval(4);
-    if(Frame == nullptr)
+    if (Frame == nullptr || Frame->nb_samples != 4096)
     {
-        LOGE("Frame is null");
+        LOGE("Frame is null or nb_samples != 4096");
         return {};
     }
-    for(auto& Element : Retval)
+
+    constexpr int TARGET_SAMPLES = 1024;
+    constexpr int NUM_SPLITS = 4;
+    std::vector<UniqueFramePtr> Retval(NUM_SPLITS);
+
+    #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(57, 28, 100)
+        int num_channels = Frame->ch_layout.nb_channels;
+    #else
+        int num_channels = av_get_channel_layout_nb_channels(Frame->channel_layout);
+    #endif
+
+    int sample_size = av_get_bytes_per_sample(static_cast<AVSampleFormat>(Frame->format));
+    bool is_planar = av_sample_fmt_is_planar(static_cast<AVSampleFormat>(Frame->format));
+
+    int64_t pts_offset = 0;
+
+    for (int i = 0; i < NUM_SPLITS; ++i)
     {
-        Element.reset(av_frame_alloc());
-        Element->nb_samples     = 1024;
-        Element->format         = Frame->format;
-        Element->sample_rate    = Frame->sample_rate;
-        Element->channel_layout = Frame->channel_layout;
-        if(av_frame_get_buffer(Element.get(), 0) != 0)
+        Retval[i].reset(av_frame_alloc());
+        Retval[i]->nb_samples     = TARGET_SAMPLES;
+        Retval[i]->format         = Frame->format;
+        Retval[i]->sample_rate    = Frame->sample_rate;
+
+        #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(57, 28, 100)
+            av_channel_layout_copy(&Retval[i]->ch_layout, &Frame->ch_layout);
+        #else
+            Retval[i]->channel_layout = Frame->channel_layout;
+        #endif
+
+        if (av_frame_get_buffer(Retval[i].get(), 0) < 0)
         {
-            LOGE("Get buffer fail");
+            LOGE("Get buffer failed for frame {}", i);
             return {};
         }
+
+        // Copy audio
+        int sample_offset = i * TARGET_SAMPLES;
+
+        if (is_planar)
+        {
+            // Copy each channel (data[0], data[1], ...)
+            for (int ch = 0; ch < num_channels; ++ch)
+            {
+                uint8_t* src_ptr = Frame->data[ch] + (sample_offset * sample_size);
+                uint8_t* dst_ptr = Retval[i]->data[ch];
+                memcpy(dst_ptr, src_ptr, TARGET_SAMPLES * sample_size);
+            }
+        }
+        else
+        {
+            // Packed format (Interleaved L-R-L-R): All channel in data[0]
+            uint8_t* src_ptr = Frame->data[0] + (sample_offset * num_channels * sample_size);
+            uint8_t* dst_ptr = Retval[i]->data[0];
+            memcpy(dst_ptr, src_ptr, TARGET_SAMPLES * num_channels * sample_size);
+        }
+
+        // Update PTS & Duration
+        Retval[i]->pts = Frame->pts + (i * TARGET_SAMPLES);
+        Retval[i]->pkt_duration = TARGET_SAMPLES;
     }
-    //LOGE("Frame->nb_samples {}", (int)Frame->nb_samples);
-    for(int i = 0; i < Frame->nb_samples; ++i)
-    {
-        int number = i / 1024;
-        Retval[number]->data[0][i % 1024] = Frame->data[0][i];
-    }
-    uint64_t NewDuration =  Frame->pkt_duration / 4;
-    // Calculate duration
-    for(int i = 0; i < Retval.size(); ++i)
-    {
-        Retval[i]->pts = Frame->pts + NewDuration * i;
-        Retval[i]->pkt_duration = NewDuration;
-    }
+
     return Retval;
 }

@@ -87,7 +87,7 @@ bool Muxer::ConfigAudio()
     }
     
     // Copy encoder information -> stream codecpar
-    int Ret = avcodec_parameters_from_context(m_AudioStream->codecpar, m_Config.VideoCodecContext);
+    int Ret = avcodec_parameters_from_context(m_AudioStream->codecpar, m_Config.AudioCodecContext);
     if (Ret < 0)
     {
         LOGE("avcodec_parameters_from_context failed");
@@ -126,6 +126,38 @@ bool Muxer::WriteTrailer()
     return Ret >= 0;
 }
 
+// bool Muxer::WritePacket(const UniquePacketPtr Packet)
+// {
+//     if(Packet == nullptr)
+//     {
+//         LOGE("Packet is nullptr");
+//         return false;
+//     }
+//     if(m_VideoStream == nullptr)
+//     {
+//         LOGE("Video Stream is null");
+//         return false;
+//     }
+//     Packet->stream_index = m_VideoStream->index;
+//     int Ret = av_interleaved_write_frame(m_FormatContext.get(), Packet.get());
+//     if(Ret < 0)
+//     {
+//         LOGE("Write frame fail");
+//         return false;
+//     }
+//     return true;
+// }
+
+// AVRational Muxer::GetTimeBase()
+// {
+//     if(m_VideoStream == nullptr)
+//     {
+//         LOGE("m_VideoStream is null");
+//         return {};
+//     }
+//     return m_VideoStream->time_base;
+// }
+
 bool Muxer::WritePacket(const UniquePacketPtr Packet)
 {
     if(Packet == nullptr)
@@ -133,12 +165,12 @@ bool Muxer::WritePacket(const UniquePacketPtr Packet)
         LOGE("Packet is nullptr");
         return false;
     }
-    if(m_VideoStream == nullptr)
+    if(m_AudioStream == nullptr)
     {
         LOGE("Video Stream is null");
         return false;
     }
-    Packet->stream_index = m_VideoStream->index;
+    Packet->stream_index = m_AudioStream->index;
     int Ret = av_interleaved_write_frame(m_FormatContext.get(), Packet.get());
     if(Ret < 0)
     {
@@ -150,10 +182,10 @@ bool Muxer::WritePacket(const UniquePacketPtr Packet)
 
 AVRational Muxer::GetTimeBase()
 {
-    if(m_VideoStream == nullptr)
+    if(m_AudioStream == nullptr)
     {
         LOGE("m_VideoStream is null");
         return {};
     }
-    return m_VideoStream->time_base;
+    return m_AudioStream->time_base;
 }

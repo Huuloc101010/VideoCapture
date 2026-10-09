@@ -5,6 +5,14 @@ std::vector<UniquePacketPtr> Encoder::Encode(UniqueFramePtr Frame)
 {
     std::vector<UniquePacketPtr> VectorPacket;
     int Retval = avcodec_send_frame(m_CodecContext.get(), Frame.get());
+    if (Retval < 0)
+    {
+        char ErrorBuffer[AV_ERROR_MAX_STRING_SIZE] = {};
+        av_strerror(Retval, ErrorBuffer, sizeof(ErrorBuffer));
+
+        LOGE("avcodec_send_frame failed: {}", ErrorBuffer);
+        return VectorPacket;
+    }
     if(Retval != 0)
     {
         LOGE("avcodec_send_frame() fail");

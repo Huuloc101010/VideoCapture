@@ -15,7 +15,7 @@ public:
     Utils();
     static Utils& GetInstance();
     bool SavePPM(const std::string& filename, const std::vector<uint8_t>& rgb, int width, int height);
-    uint64_t GetTimeStamp(const AVRational& Rational, uint64_t Time);
+    double GetTimeStamp(const AVRational& Rational, uint64_t Time);
     std::string GetSampleFormatName(const MediaType& MediaType, const int Format);
     void ConvertTimestamp(const UniqueFramePtr& Frame , const AVRational& OldTimestamp, const AVRational& NewTimestamp);
     void ConvertTimestamp(const UniquePacketPtr& Packet , const AVRational& OldTimestamp, const AVRational& NewTimestamp);

@@ -4,7 +4,7 @@
 #include "Utils.h"
 #include "Define.h"
 
-
+/*
 void VideoRecorder::Record()
 {
     m_IsRunning = true;
@@ -74,79 +74,82 @@ void VideoRecorder::Record()
     LOGI("Actual FPS = {}", FrameCount / Seconds);
     m_Muxer.WriteTrailer();
 }
+*/
 
-// void VideoRecorder::Record()
-// {
-//     m_IsRunning = true;
+void VideoRecorder::Record()
+{
+    m_IsRunning = true;
+    m_Muxer.WriteHeader();
+    auto Start = std::chrono::steady_clock::now();
+    std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
+    int FrameCount = 0;
+    int64_t FirstTimeStamp = AV_NOPTS_VALUE;
+    //while(m_IsRunning == true)
+    for(int i = 0; i <= 100; ++i)
+    {
+        UniquePacketPtr Packet = m_AlsaCapture.ReadPacket();
+        if(Packet == nullptr)
+        {
+            LOGE("Packet is nullptr");
+            return;
+        }
+        // Save first timestamp
+        if(FirstTimeStamp == AV_NOPTS_VALUE)
+        {
+            FirstTimeStamp = Packet->pts;
+        }
+        // Reset present timstamp
+        Packet->pts = Packet->pts - FirstTimeStamp;
 
-//     std::ofstream File("audio.raw", std::ios::binary);
+        UniqueFramePtr FrameS16P = m_AudioConvert.ConvertPacketToFrame(std::move(Packet));
+        if(FrameS16P == nullptr)
+        {
+            LOGE("FrameS16P = nullptr");
+            return;
+        }
 
-//     if (!File.is_open())
-//     {
-//         LOGE("Can not open audio.raw");
-//         return;
-//     }
+        UniqueFramePtr FrameFPTP = m_AudioConvert.ConvertS16ToFPTP(std::move(FrameS16P));
+        if(FrameFPTP == nullptr)
+        {
+            LOGE("FrameFPTP = nullptr");
+            return;
+        }
+        // Split frame 4096 to 1024
+        std::vector<UniqueFramePtr> VectorFrame = m_AudioConvert.SplitPacket(std::move(FrameFPTP));
+        LOGE("Size VectorFrame = {}", VectorFrame.size());
+        for(auto& Element : VectorFrame)
+        {
+            LOGW("Duration {}", Element->pkt_duration);
+            LOGW("Timestamp pts {}", Element->pts);
+            Utils::GetInstance().ConvertTimestamp(Element, m_AlsaCapture.GetTimeBase(), m_AudioEncoder.GetTimeBase());
+            std::vector<UniquePacketPtr> VectorPacket = {};
+            if(i < 100)
+            {
+                VectorPacket = m_AudioEncoder.Encode(std::move(Element));
+            }
+            else
+            {
+                VectorPacket = m_AudioEncoder.Encode(nullptr);
+            }
+            for(auto& SubElement : VectorPacket)
+            {
+                Utils::GetInstance().ConvertTimestamp(SubElement, m_AudioEncoder.GetTimeBase(), m_Muxer.GetTimeBase());
+                Utils::GetInstance().PrintTimeStamp(m_Muxer.GetTimeBase(), SubElement->pts);
+                LOGE("Packet->pts = {}", SubElement->pts);
+                m_Muxer.WritePacket(std::move(SubElement));
+            }
+        }
+    }
+    // Flush encoder
+    auto End = std::chrono::steady_clock::now();
+    //FlushEncoder();
+    double Seconds =
+    std::chrono::duration<double>(End - Start).count();
 
-//     AudioConvertConfig Config = {m_AlsaCapture.GetStream(), 48000, AV_CH_LAYOUT_STEREO};
-//     m_AudioConvert.Config(Config);
-//     m_Muxer.WriteHeader();
-//     uint64_t FirstTimeStamp = AV_NOPTS_VALUE;
-//     for (int i = 0; i < 70; ++i)
-//     {
-//         UniquePacketPtr Packet = m_AlsaCapture.ReadPacket();
-//         if(Packet == nullptr)
-//         {
-//             LOGE("Packet is nullptr");
-//             return;
-//         }
-//         // Save first timestamp
-//         if(FirstTimeStamp == AV_NOPTS_VALUE)
-//         {
-//             FirstTimeStamp = Packet->dts;
-//         }
-//         Packet->pts = Packet->pts - FirstTimeStamp;
-//         LOGE("First timstamp {}", FirstTimeStamp);
-//         LOGE("Packet->pts {}", Packet->pts);
-//         int num = m_AlsaCapture.GetStream()->time_base.num;
-//         int den = m_AlsaCapture.GetStream()->time_base.den;
-//         LOGE("num {}", num);
-//         LOGE("den {}", den);
-//         LOGE("Time {}", Packet->pts * num / (double)den);
-//         LOGE("Duration {}", Packet->duration);
-//         if(!Packet)
-//         {
-//             LOGE("Read packet failed");
-//             break;
-//         }
-//         LOGE("Packet->pts {}", Packet->pts);
-//         UniqueFramePtr FrameS16P = m_AudioConvert.ConvertPacketToFrame(std::move(Packet));
-//         LOGE("FrameFPTP->pts {}", FrameS16P->pts);
-//         UniqueFramePtr FrameFPTP = m_AudioConvert.ConvertS16ToFPTP(std::move(FrameS16P));
-//         LOGE("FrameFPTP->pts {}", FrameFPTP->pts);
-//         // Split frame 4096 to 1024
-//         std::vector<UniqueFramePtr> VectorFrame = m_AudioConvert.SplitPacket(std::move(FrameFPTP));
-//         for(auto& Element : VectorFrame)
-//         {
-//             LOGW("Duration {}", Element->pkt_duration);
-//             LOGW("Timestamp pts {}", Element->pts);
-//             continue;
-//             std::vector<UniquePacketPtr> VectorPacket = m_VideoEncoder.Encode(std::move(Element));
-//             for(auto& SubElement : VectorPacket)
-//             {
-//                 m_Muxer.WritePacket(std::move(SubElement));
-//             }
-//         }
-
-//         // LOGI(
-//         //     "Packet {}: size = {} bytes, pts = {}",
-//         //     i,
-//         //     Packet->size,
-//         //     Packet->pts
-//         // );
-//     }
-//     m_Muxer.WriteTrailer();
-
-// }
+    LOGI("100 frames captured in {} seconds", Seconds);
+    LOGI("Actual FPS = {}", FrameCount / Seconds);
+    m_Muxer.WriteTrailer();
+}
 
 bool VideoRecorder::Config(const VideoRecorderConfig& Config)
 {
@@ -224,10 +227,17 @@ bool VideoRecorder::ConfigAudio()
     LOGI("Sample rate: {}", Stream->codecpar->sample_rate);
     //LOGI("Channels: {}", Stream->codecpar->ch_layout.nb_channels);
     LOGI("Sample format: {}", Stream->codecpar->format);
-    EncoderConfig EncoderConfig = {width, height, MediaType::VIDEO};
+    EncoderConfig EncoderConfig = {width, height, MediaType::AUDIO};
     if(m_AudioEncoder.ConfigEncoder(EncoderConfig) == false)
     {
         LOGE("Config encoder fail");
+        return false;
+    }
+
+    AudioConvertConfig Config = {m_AlsaCapture.GetStream(), 48000, AV_CH_LAYOUT_STEREO};
+    if(m_AudioConvert.Config(Config) == false)
+    {
+        LOGE("Audio convert fail");
         return false;
     }
 

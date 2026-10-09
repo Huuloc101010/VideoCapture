@@ -28,13 +28,13 @@ bool Utils::SavePPM(const std::string& filename, const std::vector<uint8_t>& rgb
     return true;
 }
 
-uint64_t Utils::GetTimeStamp(const AVRational& Rational, uint64_t Time)
+double Utils::GetTimeStamp(const AVRational& Rational, uint64_t Time)
 {
     if(Rational.num == 0)
     {
         return 0;
     }
-    return ((uint64_t)Rational.num/Rational.den) * Time;
+    return ((double)Rational.num/Rational.den) * Time;
 }
 
 std::string Utils::GetSampleFormatName(const MediaType& MediaType, const int Format)
