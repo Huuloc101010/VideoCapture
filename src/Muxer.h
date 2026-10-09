@@ -7,6 +7,8 @@ class Muxer
 {
 public:
     bool Config(const MuxerConfig& Config);
+    bool ConfigVideo();
+    bool ConfigAudio();
     bool WritePacket(const UniquePacketPtr Packet);
     bool WriteHeader();
     bool WriteTrailer();

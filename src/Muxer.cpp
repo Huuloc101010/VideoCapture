@@ -3,6 +3,8 @@
 
 bool Muxer::Config(const MuxerConfig& Config)
 {
+    // Create format context for output video
+    // Format context represent for output video
     m_Config = Config;
     AVFormatContext* FormatContext = nullptr;
     int Ret = avformat_alloc_output_context2(&FormatContext, nullptr, Config.Extension.c_str(), Config.VideoName.c_str());
@@ -12,7 +14,25 @@ bool Muxer::Config(const MuxerConfig& Config)
         return false;
     }
     m_FormatContext.reset(FormatContext);
+    // Create video stream
+    if(ConfigVideo() == false)
+    {
+        LOGE("Config video muxer fail");
+        return false;
+    }
+    // Create audio stream
+    if(ConfigAudio() == false)
+    {
+        LOGE("Config audio muxer fail");
+        return false;
+    }
+    
+    LOGI("Config Demuxer success");
+    return true;
+}
 
+bool Muxer::ConfigVideo()
+{
     // Create new stream
     m_VideoStream = avformat_new_stream(m_FormatContext.get(), nullptr);
     if(m_VideoStream == nullptr)
@@ -20,19 +40,14 @@ bool Muxer::Config(const MuxerConfig& Config)
         LOGE("Video stream == nullptr");
         return false;
     }
-    LOGI(
-    "Muxer stream TB = {}/{}",
-    m_VideoStream->time_base.num,
-    m_VideoStream->time_base.den
-    );
-    if (Config.VideoCodecContex == nullptr)
+    if (m_Config.VideoCodecContex == nullptr)
     {
         LOGE("VideoCodecContex is nullptr");
         return false;
     }
     
     // Copy encoder information -> stream codecpar
-    Ret = avcodec_parameters_from_context(m_VideoStream->codecpar, Config.VideoCodecContex);
+    int Ret = avcodec_parameters_from_context(m_VideoStream->codecpar, m_Config.VideoCodecContex);
     if (Ret < 0)
     {
         LOGE("avcodec_parameters_from_context failed");
@@ -40,12 +55,12 @@ bool Muxer::Config(const MuxerConfig& Config)
     }
 
     // Use encoder time base
-    m_VideoStream->time_base = Config.VideoCodecContex->time_base;
+    m_VideoStream->time_base = m_Config.VideoCodecContex->time_base;
 
     // Open output file
-    if(!(FormatContext->oformat->flags & AVFMT_NOFILE))
+    if(!(m_FormatContext->oformat->flags & AVFMT_NOFILE))
     {
-        Ret = avio_open(&m_FormatContext->pb, Config.VideoName.c_str() , AVIO_FLAG_WRITE);
+        Ret = avio_open(&m_FormatContext->pb, m_Config.VideoName.c_str() , AVIO_FLAG_WRITE);
 
         if (Ret < 0)
         {
@@ -61,7 +76,12 @@ bool Muxer::Config(const MuxerConfig& Config)
         m_VideoStream->time_base.num,
         m_VideoStream->time_base.den
     );
-    LOGI("Config Demuxer success");
+    return true;
+}
+
+bool Muxer::ConfigAudio()
+{
+
     return true;
 }
 
@@ -82,9 +102,10 @@ bool Muxer::WriteTrailer()
 {
     int Ret = av_write_trailer(m_FormatContext.get());
 
-    if (m_FormatContext->pb)
+    if(m_FormatContext->pb)
     {
         avio_closep(&m_FormatContext->pb);
+        m_FormatContext->pb = nullptr;
     }
 
     return Ret >= 0;
