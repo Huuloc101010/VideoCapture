@@ -11,20 +11,21 @@ void VideoRecorder::Record()
     m_Muxer.WriteHeader();
     auto Start = std::chrono::steady_clock::now();
     int64_t FirstPts = AV_NOPTS_VALUE;
-    std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
     int FrameCount = 0;
-    //ThreadCaptureVideo();
-    ThreadCaptureAudio();
+    std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
+    std::jthread ThreadVideo(&VideoRecorder::ThreadCaptureVideo, this);
+    std::jthread TheadAudio(&VideoRecorder::ThreadCaptureAudio, this);
+    ThreadVideo.join();
+    TheadAudio.join();
     auto End = std::chrono::steady_clock::now();
     // Flush video and audio encoder
     FlushVideoEncoder();
     FlushAudioEncoder();
-    double Seconds =
-    std::chrono::duration<double>(End - Start).count();
+    double Seconds = std::chrono::duration<double>(End - Start).count();
 
-    LOGI("100 frames captured in {} seconds", Seconds);
-    LOGI("Actual FPS = {}", FrameCount / Seconds);
+    LOGI("Captured in {} seconds", Seconds);
     m_Muxer.WriteTrailer();
+    m_IsRunning = false;
 }
 
 bool VideoRecorder::Config(const VideoRecorderConfig& Config)

@@ -12,6 +12,8 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <linux/videodev2.h>
+#include <mutex>
+#include <thread>
 #include "V4l2Capture.h"
 #include "Encoder.h"
 #include "Muxer.h"

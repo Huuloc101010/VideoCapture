@@ -102,6 +102,7 @@ bool Muxer::ConfigAudio()
 
 bool Muxer::WriteHeader()
 {
+    std::lock_guard<std::mutex> Lock(m_MutexMuxer);
     int Ret = avformat_write_header(m_FormatContext.get(), nullptr);
 
     if (Ret < 0)
@@ -115,6 +116,7 @@ bool Muxer::WriteHeader()
 
 bool Muxer::WriteTrailer()
 {
+    std::lock_guard<std::mutex> Lock(m_MutexMuxer);
     int Ret = av_write_trailer(m_FormatContext.get());
 
     if(m_FormatContext->pb)
@@ -139,6 +141,7 @@ bool Muxer::WriteVideoPacket(const UniquePacketPtr Packet)
         return false;
     }
     Packet->stream_index = m_VideoStream->index;
+    std::lock_guard<std::mutex> Lock(m_MutexMuxer);
     int Ret = av_interleaved_write_frame(m_FormatContext.get(), Packet.get());
     if(Ret < 0)
     {
@@ -171,6 +174,7 @@ bool Muxer::WriteAudioPacket(const UniquePacketPtr Packet)
         return false;
     }
     Packet->stream_index = m_AudioStream->index;
+    std::lock_guard<std::mutex> Lock(m_MutexMuxer);
     int Ret = av_interleaved_write_frame(m_FormatContext.get(), Packet.get());
     if(Ret < 0)
     {

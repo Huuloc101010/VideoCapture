@@ -1,5 +1,7 @@
 #ifndef MUXER_H
 #define MUXER_H
+
+#include <mutex>
 #include "Define.h"
 #include "Log.h"
 
@@ -20,6 +22,7 @@ private:
     AVStreamPtr         m_VideoStream;
     AVStreamPtr         m_AudioStream;
     MuxerConfig         m_Config;
+    std::mutex          m_MutexMuxer;
 };
 
 #endif // MUXER_H
