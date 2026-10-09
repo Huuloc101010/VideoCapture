@@ -4,7 +4,7 @@
 #include "Utils.h"
 #include "Define.h"
 
-/*
+
 void VideoRecorder::Record()
 {
     m_IsRunning = true;
@@ -60,7 +60,7 @@ void VideoRecorder::Record()
                 continue;
             }
 
-        Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetTimeBase());
+        Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetVideoTimeBase());
         m_Muxer.WriteVideoPacket(std::move(Packet));
         }
     }
@@ -74,8 +74,8 @@ void VideoRecorder::Record()
     LOGI("Actual FPS = {}", FrameCount / Seconds);
     m_Muxer.WriteTrailer();
 }
-*/
 
+/*
 void VideoRecorder::Record()
 {
     m_IsRunning = true;
@@ -150,7 +150,7 @@ void VideoRecorder::Record()
     LOGI("Actual FPS = {}", FrameCount / Seconds);
     m_Muxer.WriteTrailer();
 }
-
+*/
 bool VideoRecorder::Config(const VideoRecorderConfig& Config)
 {
     constexpr int width = 640;
@@ -270,6 +270,7 @@ void VideoRecorder::FlushVideoEncoder()
             LOGE("Packet is nullptr");
             continue;
         }
+        Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetVideoTimeBase());
         m_Muxer.WriteVideoPacket(std::move(Packet));
     }
     LOGI("Flush video encoder success");
@@ -280,11 +281,12 @@ void VideoRecorder::FlushAudioEncoder()
     std::vector<UniquePacketPtr> VectorEncoder = m_AudioEncoder.Encode(nullptr);
     for (auto& Packet : VectorEncoder)
     {
-        if (Packet == nullptr)
+        if(Packet == nullptr)
         {
             LOGE("Packet is nullptr");
             continue;
         }
+        Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetVideoTimeBase());
         m_Muxer.WriteAudioPacket(std::move(Packet));
     }
     LOGI("Flush audio encoder success");
