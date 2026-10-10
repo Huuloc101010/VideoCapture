@@ -123,17 +123,15 @@ bool VideoRecorder::ConfigAudio()
 
 void VideoRecorder::CheckTimeRecorded()
 {
-    auto Start = std::chrono::steady_clock::now();
+    Clock Clock;
     while(m_IsRunning == true)
     {
-        auto Current = std::chrono::steady_clock::now();
-        auto Elapsed = std::chrono::duration_cast<std::chrono::seconds>(Current - Start).count();
-        if(Elapsed > m_TimeRecord)
+        if(Clock.GetTimeSeconds() > (double)m_TimeRecord)
         {
             LOGW("Record timeout");
             m_IsRunning = false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 }
 
