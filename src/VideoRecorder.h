@@ -22,6 +22,7 @@
 #include "AudioConvert.h"
 #include "VideoEncoder.h"
 #include "AudioEncoder.h"
+#include "Queue.h"
 
 class VideoRecorder
 {
@@ -39,6 +40,7 @@ private:
     void FlushAudioEncoder();
     void ThreadCaptureVideo();
     void ThreadCaptureAudio();
+    void ThreadWriteFrame();
 
     V4l2Capture          m_V4l2Capture;
     VideoEncoder         m_VideoEncoder;
@@ -50,6 +52,8 @@ private:
     std::atomic<bool>     m_IsRunning;
     AlsaCapture           m_AlsaCapture;
     AudioConvert          m_AudioConvert;
+    Queue<UniquePacketPtr> m_VideoQueue;
+    Queue<UniquePacketPtr> m_AudioQueue;
 };
 
 #endif // VIDEO_RECORDER_H
