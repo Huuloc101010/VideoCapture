@@ -4,6 +4,7 @@
 #include <mutex>
 #include "Define.h"
 #include "Log.h"
+#include "Clock.h"
 
 class Muxer
 {
