@@ -179,16 +179,16 @@ void VideoRecorder::ThreadCaptureVideo()
     Clock Clock;
     while(m_IsRunning == true)
     {
-        UniquePacketPtr packet = m_V4l2Capture.ReadPacket();
-        if(packet == nullptr)
+        UniquePacketPtr Packet = m_V4l2Capture.ReadPacket();
+        if(Packet == nullptr)
         {
-            LOGE("packet is null");
+            LOGE("Packet is null");
             continue;
         }
         // Recalculate timestamp follow system clock
-        packet->pts = Utils::GetInstance().GetTimeStamp(m_V4l2Capture.GetTimeBase(), Clock.GetTimeSeconds());
+        Packet->pts = Utils::GetInstance().GetTimeStamp(m_V4l2Capture.GetTimeBase(), Clock.GetTimeSeconds());
         LOGW("Thread video: {}", Clock.GetTimeSeconds());
-        UniqueFramePtr frame = m_ColorConvert.ConvertPacketToFrame(std::move(packet));
+        UniqueFramePtr frame = m_ColorConvert.ConvertPacketToFrame(std::move(Packet));
         if(frame == nullptr)
         {
             LOGE("frame is nullptr");
@@ -204,7 +204,7 @@ void VideoRecorder::ThreadCaptureVideo()
         Utils::GetInstance().ConvertTimestamp(YUV420, m_V4l2Capture.GetTimeBase(), m_VideoEncoder.GetTimeBase());
         std::vector<UniquePacketPtr>  VectorEncoder =  m_VideoEncoder.Encode(std::move(YUV420));
 
-        for (auto& Packet : VectorEncoder)
+        for(auto& Packet : VectorEncoder)
         {
             if (Packet == nullptr)
             {
