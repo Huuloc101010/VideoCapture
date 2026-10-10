@@ -15,8 +15,10 @@ void VideoRecorder::Record()
     std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
     std::jthread ThreadVideo(&VideoRecorder::ThreadCaptureVideo, this);
     std::jthread TheadAudio(&VideoRecorder::ThreadCaptureAudio, this);
+    std::jthread ThreadWriteFrame(&VideoRecorder::ThreadWriteFrame, this);
     ThreadVideo.join();
     TheadAudio.join();
+    ThreadWriteFrame.join();
     auto End = std::chrono::steady_clock::now();
     // Flush video and audio encoder
     FlushVideoEncoder();
@@ -172,14 +174,10 @@ void VideoRecorder::Stop()
 
 void VideoRecorder::ThreadCaptureVideo()
 {
-    int64_t FirstPts = AV_NOPTS_VALUE;
-    int FrameCount = 0;
     Clock Clock;
     while(m_IsRunning == true)
     {
         UniquePacketPtr packet = m_V4l2Capture.ReadPacket();
-
-        FrameCount ++;
         if(packet == nullptr)
         {
             LOGE("packet is null");
@@ -212,15 +210,13 @@ void VideoRecorder::ThreadCaptureVideo()
                 continue;
             }
             Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetVideoTimeBase());
-            m_Muxer.WriteVideoPacket(std::move(Packet));
+            m_VideoQueue.Push(std::move(Packet));
         }
     }
 }
 
 void VideoRecorder::ThreadCaptureAudio()
 {
-    int FrameCount = 0;
-    int64_t FirstTimeStamp = AV_NOPTS_VALUE;
     Clock Clock;
     while(m_IsRunning == true)
     {
@@ -254,8 +250,50 @@ void VideoRecorder::ThreadCaptureAudio()
             for(auto& SubElement : VectorPacket)
             {
                 Utils::GetInstance().ConvertTimestamp(SubElement, m_AudioEncoder.GetTimeBase(), m_Muxer.GetAudioTimeBase());
-                m_Muxer.WriteAudioPacket(std::move(SubElement));
+                m_AudioQueue.Push(std::move(SubElement));
             }
+        }
+    }
+}
+
+void VideoRecorder::ThreadWriteFrame()
+{
+    UniquePacketPtr VideoPacket = nullptr;
+    UniquePacketPtr AudioPacket = nullptr;
+    while((m_IsRunning == true) || m_VideoQueue.Size() || m_AudioQueue.Size())
+    {
+        int64_t VideoPts = INT64_MAX;
+        int64_t AudioPts = INT64_MAX;
+        if(m_VideoQueue.Size() && (VideoPacket == nullptr))
+        {
+            VideoPacket = m_VideoQueue.Pop();
+        }
+        if(m_AudioQueue.Size() && (AudioPacket == nullptr))
+        {
+            AudioPacket = m_AudioQueue.Pop();
+        }
+        if((VideoPacket == nullptr) && (AudioPacket == nullptr))
+        {
+            // Skip if 2 queue pop fail (Maybe queue stoped)
+            continue;
+        }
+        if(VideoPacket != nullptr)
+        {
+            VideoPts = VideoPacket->pts;
+        }
+        if(AudioPacket != nullptr)
+        {
+            AudioPts = AudioPacket->pts;
+        }
+        if(VideoPts < AudioPts)
+        {
+            // Write video
+            m_Muxer.WriteVideoPacket(std::move(VideoPacket));
+        }
+        else
+        {
+            // Write audio
+            m_Muxer.WriteAudioPacket(std::move(AudioPacket));
         }
     }
 }
