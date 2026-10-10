@@ -4,12 +4,16 @@
 #include "Utils.h"
 #include "Define.h"
 
+VideoRecorder::VideoRecorder()
+{
+    m_FlushSuccessCounter = 0;
+}
 
 void VideoRecorder::Record()
 {
     m_IsRunning = true;
     m_Muxer.WriteHeader();
-    auto Start = std::chrono::steady_clock::now();
+    Clock Clock;
     int64_t FirstPts = AV_NOPTS_VALUE;
     int FrameCount = 0;
     std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
@@ -18,14 +22,12 @@ void VideoRecorder::Record()
     std::jthread ThreadWriteFrame(&VideoRecorder::ThreadWriteFrame, this);
     ThreadVideo.join();
     TheadAudio.join();
-    ThreadWriteFrame.join();
-    auto End = std::chrono::steady_clock::now();
     // Flush video and audio encoder
     FlushVideoEncoder();
     FlushAudioEncoder();
-    double Seconds = std::chrono::duration<double>(End - Start).count();
+    ThreadWriteFrame.join();
 
-    LOGI("Captured in {} seconds", Seconds);
+    LOGI("Captured in {} seconds", Clock.GetTimeSeconds());
     m_Muxer.WriteTrailer();
     m_IsRunning = false;
 }
@@ -131,7 +133,7 @@ void VideoRecorder::CheckTimeRecorded()
             LOGW("Record timeout");
             m_IsRunning = false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
@@ -146,8 +148,9 @@ void VideoRecorder::FlushVideoEncoder()
             continue;
         }
         Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetVideoTimeBase());
-        m_Muxer.WriteVideoPacket(std::move(Packet));
+        m_VideoQueue.Push(std::move(Packet));
     }
+    m_FlushSuccessCounter ++;
     LOGI("Flush video encoder success");
 }
 
@@ -162,8 +165,9 @@ void VideoRecorder::FlushAudioEncoder()
             continue;
         }
         Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetVideoTimeBase());
-        m_Muxer.WriteAudioPacket(std::move(Packet));
+        m_AudioQueue.Push(std::move(Packet));
     }
+    m_FlushSuccessCounter ++;
     LOGI("Flush audio encoder success");
 }
 
@@ -260,7 +264,7 @@ void VideoRecorder::ThreadWriteFrame()
 {
     UniquePacketPtr VideoPacket = nullptr;
     UniquePacketPtr AudioPacket = nullptr;
-    while((m_IsRunning == true) || m_VideoQueue.Size() || m_AudioQueue.Size())
+    while((m_IsRunning == true) || (m_FlushSuccessCounter != 2)) // 2 is counter for do flush video and audio success
     {
         int64_t VideoPts = INT64_MAX;
         int64_t AudioPts = INT64_MAX;

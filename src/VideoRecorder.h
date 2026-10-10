@@ -27,7 +27,7 @@
 class VideoRecorder
 {
 public:
-    VideoRecorder() = default;
+    VideoRecorder();
     ~VideoRecorder() = default;
     bool Config(const VideoRecorderConfig& Config);
     bool ConfigVideo();
@@ -50,6 +50,7 @@ private:
     VideoRecorderConfig  m_Config;
     std::atomic<uint64_t> m_TimeRecord;
     std::atomic<bool>     m_IsRunning;
+    std::atomic<int>      m_FlushSuccessCounter;
     AlsaCapture           m_AlsaCapture;
     AudioConvert          m_AudioConvert;
     Queue<UniquePacketPtr> m_VideoQueue;
