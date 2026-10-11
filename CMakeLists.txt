@@ -51,10 +51,17 @@ target_include_directories(VideoRecorder PRIVATE
     ${FFMPEG_INCLUDE_DIRS}
 )
 
+set(LIVE_555_INCLUDE "${CMAKE_SOURCE_DIR}/src/ThirdParty/Live555/include")
+set(LIVE_555_LIBRARIES "${CMAKE_SOURCE_DIR}/src/ThirdParty/Live555/lib/libliveMedia.a"
+                       "${CMAKE_SOURCE_DIR}/src/ThirdParty/Live555/lib/libgroupsock.a"
+                       "${CMAKE_SOURCE_DIR}/src/ThirdParty/Live555/lib/libBasicUsageEnvironment.a"
+                       "${CMAKE_SOURCE_DIR}/src/ThirdParty/Live555/lib/libUsageEnvironment.a"
+)
 # Header files
 target_include_directories(VideoRecorder PRIVATE
     ${HEADER_DIRS}
     ${FFMPEG_INCLUDE_DIRS}
+    ${LIVE_555_INCLUDE}
 )
 
 # Library directories
@@ -65,4 +72,12 @@ target_link_directories(VideoRecorder PRIVATE
 # Link FFmpeg
 target_link_libraries(VideoRecorder PRIVATE
     ${FFMPEG_LIBRARIES}
+)
+
+# Link Live555
+target_link_libraries(VideoRecorder PRIVATE
+    ${LIVE_555_LIBRARIES}
+    ssl
+    crypto
+    pthread
 )
