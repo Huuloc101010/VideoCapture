@@ -21,6 +21,9 @@ public:
     void ConvertTimestamp(const UniqueFramePtr& Frame , const AVRational& OldTimestamp, const AVRational& NewTimestamp);
     void ConvertTimestamp(const UniquePacketPtr& Packet , const AVRational& OldTimestamp, const AVRational& NewTimestamp);
     void PrintTimeStamp(const AVRational& Timebase, const int64_t Timstamp = UINT64_MAX);
+    UniquePacketPtr DuplicatePacket(const UniquePacketPtr& Packet);
+    AVPacketPtr DuplicatePacket(const AVPacketPtr& Packet);
+
 private:
     
 };

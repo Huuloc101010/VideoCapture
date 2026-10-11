@@ -109,3 +109,33 @@ void Utils::PrintTimeStamp(const AVRational& Timebase, const int64_t Timstamp)
         LOGI("Packet or Frame timestamp: {}", GetTimeStamp(Timebase, Timstamp));
     }
 }
+
+UniquePacketPtr Utils::DuplicatePacket(const UniquePacketPtr& Packet)
+{
+    if(Packet == nullptr)
+    {
+        LOGW("Packet need to duplicate is null");
+        return nullptr;
+    }
+    UniquePacketPtr Retval(av_packet_clone(Packet.get()));
+    if(Retval == nullptr)
+    {
+        LOGE("Can not allocate new Packet");
+    }
+    return Retval;
+}
+
+AVPacketPtr Utils::DuplicatePacket(const AVPacketPtr& Packet)
+{
+    if(Packet == nullptr)
+    {
+        LOGW("Packet need to duplicate is null");
+        return nullptr;
+    }
+    AVPacketPtr Retval = av_packet_clone(Packet);
+    if(Retval == nullptr)
+    {
+        LOGE("Can not allocate new Packet");
+    }
+    return Retval;
+}

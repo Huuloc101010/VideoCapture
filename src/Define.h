@@ -131,6 +131,8 @@ using UniqueSwrContext    = std::unique_ptr<SwrContext, UniquePtrDeleterLevel2<S
 using AVCodecPtr          = AVCodec *;
 using AVStreamPtr         = AVStream *;
 using AVCodecParPtr       = AVCodecParameters *;
+using AVPacketPtr         = AVPacket *;
+using AVFramePtr          = AVFrame *;
 
 struct MuxerConfig
 {
