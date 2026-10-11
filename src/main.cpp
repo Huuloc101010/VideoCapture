@@ -34,14 +34,14 @@ int main()
     std::signal(SIGINT, SignalHandler);
     VideoRecorderConfig RecorderConfig;
     RecorderConfig.PathDevice = "/dev/video0";
-    RecorderConfig.PathVideoOutput = "Video.mp4";
-    RecorderConfig.TailVideo = "mp4";
+    RecorderConfig.PathVideoOutput = "rtsp://127.0.0.1:8554/live";
+    RecorderConfig.TailVideo = "rtsp";
     RecorderConfig.Width = 640;
     RecorderConfig.Height = 480;
     RecorderConfig.PathAudioDevice = "hw:0,0";
     RecorderConfig.AudioSampleRate = "48000";
     RecorderConfig.AudioSampleChannel = "2";
-    RecorderConfig.Time = {0,0,10};
+    RecorderConfig.Time = {1,0,10};
 
     bool Retval = Recorder.Config(RecorderConfig);
     if(Retval == false)

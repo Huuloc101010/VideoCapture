@@ -12,10 +12,12 @@ VideoRecorder::VideoRecorder()
 void VideoRecorder::Record()
 {
     m_IsRunning = true;
-    m_Muxer.WriteHeader();
+    if(m_Muxer.WriteHeader() == false)
+    {
+        LOGE("Write header fail");
+        return;
+    }
     Clock Clock;
-    int64_t FirstPts = AV_NOPTS_VALUE;
-    int FrameCount = 0;
     std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
     std::jthread ThreadVideo(&VideoRecorder::ThreadCaptureVideo, this);
     std::jthread TheadAudio(&VideoRecorder::ThreadCaptureAudio, this);
@@ -131,7 +133,7 @@ void VideoRecorder::CheckTimeRecorded()
             LOGW("Record timeout");
             m_IsRunning = false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 

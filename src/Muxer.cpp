@@ -102,9 +102,13 @@ bool Muxer::ConfigAudio()
 
 bool Muxer::WriteHeader()
 {
-    std::lock_guard<std::mutex> Lock(m_MutexMuxer);
-    int Ret = avformat_write_header(m_FormatContext.get(), nullptr);
+    AVDictionary* Options = nullptr;
+    av_dict_set(&Options, "rtsp_transport", "udp", 0);   // Use UDP for streamming
+    av_dict_set(&Options, "buffer_size", "1024000", 0);  // Large buffer
 
+    std::lock_guard<std::mutex> Lock(m_MutexMuxer);
+    int Ret = avformat_write_header(m_FormatContext.get(), &Options);
+    av_dict_free(&Options);
     if (Ret < 0)
     {
         LOGE("Write header failed");
@@ -133,6 +137,11 @@ bool Muxer::WriteVideoPacket(const UniquePacketPtr Packet)
     if(Packet == nullptr)
     {
         LOGE("Packet is nullptr");
+        return false;
+    }
+    if((Packet->pts  == AV_NOPTS_VALUE )|| (Packet->dts  == AV_NOPTS_VALUE ))
+    {
+        LOGE("Video packet timestamp error");
         return false;
     }
     if(m_VideoStream == nullptr)
@@ -166,6 +175,11 @@ bool Muxer::WriteAudioPacket(const UniquePacketPtr Packet)
     if(Packet == nullptr)
     {
         LOGE("Packet is nullptr");
+        return false;
+    }
+    if((Packet->pts  == AV_NOPTS_VALUE )|| (Packet->dts  == AV_NOPTS_VALUE ))
+    {
+        LOGE("Audio packet timestamp error");
         return false;
     }
     if(m_AudioStream == nullptr)
