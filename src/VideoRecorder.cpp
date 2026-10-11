@@ -28,7 +28,7 @@ void VideoRecorder::Record()
     FlushVideoEncoder();
     FlushAudioEncoder();
     ThreadWriteFrame.join();
-
+    CheckTime.join();
     LOGI("Captured in {} seconds", Clock.GetTimeSeconds());
     m_Muxer.WriteTrailer();
     m_IsRunning = false;

@@ -13,13 +13,15 @@
 
 // Use global variable for signal system
 std::function<void()> Callback;
-
+std::mutex MutexHandle;
 void SignalHandler(int Signal)
 {
+    std::lock_guard<std::mutex> Lock(MutexHandle);
     LOGW("Received signal stop");
     if(Callback)
     {
         Callback();
+        Callback = nullptr;
     }
 }
 
@@ -30,8 +32,6 @@ int main()
     {
         Recorder.Stop();
     };
-    // Register to system
-    std::signal(SIGINT, SignalHandler);
     VideoRecorderConfig RecorderConfig;
     RecorderConfig.PathDevice = "/dev/video0";
     RecorderConfig.PathVideoOutput = "rtsp://127.0.0.1:8554/live";
@@ -42,12 +42,14 @@ int main()
     RecorderConfig.AudioSampleRate = "48000";
     RecorderConfig.AudioSampleChannel = "2";
     RecorderConfig.Time = {1,0,10};
-
+    
     bool Retval = Recorder.Config(RecorderConfig);
     if(Retval == false)
     {
         return -1;
     }
+    // Register to system
+    std::signal(SIGINT, SignalHandler);
     Recorder.Record();
 
     LOGI("Capture finished");
