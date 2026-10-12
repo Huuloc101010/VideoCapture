@@ -242,6 +242,18 @@ void VideoRecorder::FlushAudioEncoder()
 void VideoRecorder::Stop()
 {
     m_IsRunning = false;
+    if(m_StreamingServer != nullptr)
+    {
+        m_StreamingServer->Stop();
+    }
+    if(m_VideoQueue)
+    {
+        m_VideoQueue->Stop();
+    }
+    if(m_AudioQueue)
+    {
+        m_AudioQueue->Stop();
+    }
 }
 
 void VideoRecorder::ThreadCaptureVideo()

@@ -61,7 +61,7 @@ public:
     void Stop()
     {
         std::unique_lock<std::mutex> Lock(m_Mutex);
-        m_Data.clear();
+        //m_Data.clear();
         m_IsStop = true;
         m_ConditionVariable.notify_all();
     }

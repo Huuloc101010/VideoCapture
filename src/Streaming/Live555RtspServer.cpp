@@ -17,7 +17,7 @@ void Live555RtspServer::Config(const Live555RtspConfig& Config)
 
 bool Live555RtspServer::Start(uint16_t port, const std::string& streamName)
 {
-    m_running = true;
+    m_running = 0;
     m_thread = std::jthread([this, port, streamName](std::stop_token st)
     {
         TaskScheduler* scheduler = BasicTaskScheduler::createNew();
@@ -44,16 +44,16 @@ bool Live555RtspServer::Start(uint16_t port, const std::string& streamName)
         sms->addSubsession(AACLiveSubsession::createNew(*env, m_audioQueue, 48000, 2));
 
         rtspServer->addServerMediaSession(sms);
-
-        std::cout << "\n[RTSP Server] Streaming ready at: " << rtspServer->rtspURLPrefix() << streamName << "\n\n";
+        char* Prefix = rtspServer->rtspURLPrefix();
+        std::cout << "\n[RTSP Server] Streaming ready at: " << Prefix << streamName << "\n\n";
+        delete[] Prefix;
 
         // Event Loop
-        std::atomic<char> stopFlag = 0;
-        while (!st.stop_requested() && m_running)
-        {
-            std::cout << "Doing loop" << std::endl;
-            scheduler->doEventLoop(&stopFlag);
-        }
+        std::cout << "Doing loop" << std::endl;
+            if(scheduler)
+            {
+                scheduler->doEventLoop(&m_running);
+            }
         std::cout << "Do looop success" << std::endl;
         Medium::close(rtspServer);
         env->reclaim();
@@ -65,9 +65,12 @@ bool Live555RtspServer::Start(uint16_t port, const std::string& streamName)
 
 void Live555RtspServer::Stop()
 {
-    m_running = false;
+    m_running = 1;
+    LOGI("m_running = 1");
     if(m_thread.joinable())
     {
         m_thread.request_stop();
+        m_thread.join();
     }
+    LOGI("Success");
 }

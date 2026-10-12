@@ -18,3 +18,9 @@ bool StreamingServer::Start()
 {
     return m_RtspServer.Start(m_Config.Port, m_Config.Path);
 }
+
+void StreamingServer::Stop()
+{
+    LOGI("Received stop");
+    m_RtspServer.Stop();
+}

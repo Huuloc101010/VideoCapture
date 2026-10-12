@@ -13,6 +13,8 @@ public:
     ~StreamingServer() = default;
     bool Config(const StreamingServerConfig& Config);
     bool Start();
+    void Stop();
+
 private:
     std::shared_ptr<Queue<UniquePacketPtr>> m_VideoQueue;
     std::shared_ptr<Queue<UniquePacketPtr>> m_AudioQueue;
