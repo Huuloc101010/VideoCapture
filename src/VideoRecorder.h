@@ -23,6 +23,7 @@
 #include "VideoEncoder.h"
 #include "AudioEncoder.h"
 #include "Queue.h"
+#include "StreamingServer.h"
 
 class VideoRecorder
 {
@@ -35,6 +36,7 @@ public:
     void Record();
     void Stop();
 private:
+    bool ConfigStreamingServer();
     void CheckTimeRecorded();
     void FlushVideoEncoder();
     void FlushAudioEncoder();
@@ -45,7 +47,7 @@ private:
     V4l2Capture          m_V4l2Capture;
     VideoEncoder         m_VideoEncoder;
     AudioEncoder         m_AudioEncoder;
-    Muxer                m_Muxer;
+    //Muxer                m_Muxer;
     ColorConvert         m_ColorConvert;
     VideoRecorderConfig  m_Config;
     std::atomic<uint64_t> m_TimeRecord;
@@ -53,8 +55,9 @@ private:
     std::atomic<int>      m_FlushSuccessCounter;
     AlsaCapture           m_AlsaCapture;
     AudioConvert          m_AudioConvert;
-    Queue<UniquePacketPtr> m_VideoQueue;
-    Queue<UniquePacketPtr> m_AudioQueue;
+    StreamingServer       m_StreamingServer;
+    std::shared_ptr<Queue<UniquePacketPtr>> m_VideoQueue;
+    std::shared_ptr<Queue<UniquePacketPtr>> m_AudioQueue;
 };
 
 #endif // VIDEO_RECORDER_H

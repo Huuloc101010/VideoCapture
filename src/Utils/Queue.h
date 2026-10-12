@@ -4,12 +4,13 @@
 #include <condition_variable>
 #include <deque>
 #include <mutex>
+#include "Log.h"
 
 template<typename T>
 class Queue
 {
 public:
-    Queue(int LimitSize = 100)
+    Queue(int LimitSize = 10)
     {
         m_LimitSize = LimitSize;
         m_IsStop = false;

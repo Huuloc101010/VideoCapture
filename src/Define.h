@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <cstring>
+#include "Queue.h"
 extern "C"
 {
     #include <libavutil/imgutils.h>
@@ -31,6 +32,12 @@ enum class MediaType : uint8_t
     AUDIO,
     SUBTITLE,
     OTHER,
+};
+enum class MediaOutputType : uint8_t
+{
+    STREAMING,
+    FILE,
+    STREAMING_AND_FILE
 };
 
 struct V4l2CaptureConfig
@@ -142,6 +149,20 @@ struct MuxerConfig
     AVCodecContext* AudioCodecContext;
     std::string Extension;
     std::string VideoName;
+};
+
+struct StreamingServerConfig
+{
+    int Port;
+    std::string Path;
+    std::shared_ptr<Queue<UniquePacketPtr>> VideoQueue;
+    std::shared_ptr<Queue<UniquePacketPtr>> AudioQueue;
+};
+
+struct Live555RtspConfig
+{
+    std::shared_ptr<Queue<UniquePacketPtr>> VideoQueue;
+    std::shared_ptr<Queue<UniquePacketPtr>> AudioQueue;
 };
 
 struct AudioConvertConfig
