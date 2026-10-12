@@ -10,27 +10,12 @@
 class H264LiveSubsession : public OnDemandServerMediaSubsession
 {
 public:
-    static H264LiveSubsession* createNew(UsageEnvironment& env, std::shared_ptr<Queue<UniquePacketPtr>> queue)
-    {
-        return new H264LiveSubsession(env, queue);
-    }
+    static H264LiveSubsession* createNew(UsageEnvironment& env, std::shared_ptr<Queue<UniquePacketPtr>> queue);
 
 protected:
-    H264LiveSubsession(UsageEnvironment& env, std::shared_ptr<Queue<UniquePacketPtr>> queue)
-        : OnDemandServerMediaSubsession(env, True /* reuseFirstSource */), m_Queue(queue) {}
-
-    FramedSource* createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) override
-    {
-        estBitrate = 2000; // kbps
-        auto source = CustomPacketSource::createNew(envir(), m_Queue);
-        // Use H264VideoStreamFramer for auto parse Annex-B NALUs (0x00000001)
-        return H264VideoStreamFramer::createNew(envir(), source);
-    }
-
-    RTPSink* createNewRTPSink(Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, FramedSource* /*inputSource*/) override
-    {
-        return H264VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
-    }
+    H264LiveSubsession(UsageEnvironment& env, std::shared_ptr<Queue<UniquePacketPtr>> queue);
+    FramedSource* createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) override;
+    RTPSink* createNewRTPSink(Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, FramedSource* /*inputSource*/) override;
 
 private:
     std::shared_ptr<Queue<UniquePacketPtr>> m_Queue;

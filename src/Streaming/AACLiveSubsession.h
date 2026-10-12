@@ -12,31 +12,11 @@ class AACLiveSubsession : public OnDemandServerMediaSubsession
 {
 public:
     static AACLiveSubsession* createNew(UsageEnvironment& Env, std::shared_ptr<Queue<UniquePacketPtr>> Queue, 
-                                        int SampleRate = 48000, int Channels = 2)
-    {
-        return new AACLiveSubsession(Env, Queue, SampleRate, Channels);
-    }
-
+                                        int SampleRate = 48000, int Channels = 2);
 protected:
-    AACLiveSubsession(UsageEnvironment& Env, std::shared_ptr<Queue<UniquePacketPtr>> Queue, int SampleRate, int Channels)
-        : OnDemandServerMediaSubsession(Env, true), m_Queue(Queue), m_sampleRate(SampleRate), m_channels(Channels)
-        {
-
-        }
-
-    FramedSource* createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) override
-    {
-        estBitrate = 128; // kbps
-        return CustomPacketSource::createNew(envir(), m_Queue);
-    }
-
-    RTPSink* createNewRTPSink(Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, FramedSource* /*inputSource*/) override {
-        // MPEG4GenericRTPSink support AAC (MPEG-4 Audio) via RTP
-        return MPEG4GenericRTPSink::createNew(
-            envir(), rtpGroupsock, rtpPayloadTypeIfDynamic,
-            m_sampleRate, "audio", "AAC-hbr", "", m_channels
-        );
-    }
+    AACLiveSubsession(UsageEnvironment& Env, std::shared_ptr<Queue<UniquePacketPtr>> Queue, int SampleRate, int Channels);
+    FramedSource* createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) override;
+    RTPSink* createNewRTPSink(Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, FramedSource* /*inputSource*/) override;
 
 private:
     std::shared_ptr<Queue<UniquePacketPtr>> m_Queue;
