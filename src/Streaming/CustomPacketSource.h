@@ -41,24 +41,6 @@ protected:
     {
         return 10000;
     }
-void PrintH264NALU(const AVPacket* Packet)
-{
-    static uint64_t PacketIndex = 0;
-    ++PacketIndex;
-
-    if (Packet == nullptr || Packet->data == nullptr || Packet->size <= 0)
-        return;
-
-    printf("[Packet #%lu] size=%d, first bytes:",
-           static_cast<unsigned long>(PacketIndex), Packet->size);
-
-    for (int i = 0; i < std::min(Packet->size, 16); ++i)
-        printf(" %02X", Packet->data[i]);
-
-    printf("\n");
-
-    // Phần phân tích NALU tiếp tục ở đây.
-}
 private:
     static void DeferredGetNextFrame(void* clientData)
     {

@@ -139,3 +139,19 @@ AVPacketPtr Utils::DuplicatePacket(const AVPacketPtr& Packet)
     }
     return Retval;
 }
+
+void Utils::PrintH264NALU(const AVPacketPtr Packet)
+{
+    if((Packet == nullptr) || (Packet->data == nullptr) || (Packet->size <= 0))
+    {
+        return;
+    }
+
+    printf("[Packet] size=%d, first bytes:", Packet->size);
+
+    for(int i = 0; i < std::min(Packet->size, 16); ++i)
+    {
+        printf(" %02X", Packet->data[i]);
+    }
+    printf("\n");
+}

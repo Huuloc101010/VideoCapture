@@ -33,11 +33,11 @@ enum class MediaType : uint8_t
     SUBTITLE,
     OTHER,
 };
-enum class MediaOutputType : uint8_t
+enum MediaOutputType : uint8_t
 {
-    STREAMING,
-    FILE,
-    STREAMING_AND_FILE
+    STREAMING          = 1,
+    FILE_MP4           = 2,
+    STREAMING_AND_FILE = 3,
 };
 
 struct V4l2CaptureConfig

@@ -23,6 +23,7 @@ public:
     void PrintTimeStamp(const AVRational& Timebase, const int64_t Timstamp = UINT64_MAX);
     UniquePacketPtr DuplicatePacket(const UniquePacketPtr& Packet);
     AVPacketPtr DuplicatePacket(const AVPacketPtr& Packet);
+    void PrintH264NALU(const AVPacketPtr Packet);
 
 private:
     

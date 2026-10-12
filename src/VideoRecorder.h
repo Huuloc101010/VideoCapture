@@ -28,7 +28,7 @@
 class VideoRecorder
 {
 public:
-    VideoRecorder();
+    VideoRecorder(const MediaOutputType& Type = STREAMING_AND_FILE);
     ~VideoRecorder() = default;
     bool Config(const VideoRecorderConfig& Config);
     bool ConfigVideo();
@@ -55,7 +55,8 @@ private:
     std::atomic<int>      m_FlushSuccessCounter;
     AlsaCapture           m_AlsaCapture;
     AudioConvert          m_AudioConvert;
-    StreamingServer       m_StreamingServer;
+    const MediaOutputType                   m_Type;
+    std::unique_ptr<StreamingServer>        m_StreamingServer;
     std::shared_ptr<Queue<UniquePacketPtr>> m_VideoQueue;
     std::shared_ptr<Queue<UniquePacketPtr>> m_AudioQueue;
 };

@@ -4,16 +4,29 @@
 #include "Utils.h"
 #include "Define.h"
 
-VideoRecorder::VideoRecorder()
+VideoRecorder::VideoRecorder(const MediaOutputType& Type) : m_Type(Type)
 {
     m_FlushSuccessCounter = 0;
     m_VideoQueue = std::make_shared<Queue<UniquePacketPtr>>();
     m_AudioQueue = std::make_shared<Queue<UniquePacketPtr>>();
+    if(Type & STREAMING)
+    {
+        m_StreamingServer = std::make_unique<StreamingServer>();
+    }
 }
 
 void VideoRecorder::Record()
 {
-    m_StreamingServer.Start();
+    if(m_Type & STREAMING)
+    {
+        if(m_StreamingServer == nullptr)
+        {
+            LOGE("m_StreamingServer is nullptr");
+            return;
+        }
+        // Start Stream server
+        m_StreamingServer->Start();
+    }
     m_IsRunning = true;
     // if(m_Muxer.WriteHeader() == false)
     // {
@@ -65,10 +78,13 @@ bool VideoRecorder::Config(const VideoRecorderConfig& Config)
     //     return false;
     // }
 
-    if(ConfigStreamingServer() == false)
+    if(m_Type & STREAMING)
     {
-        LOGE("Config Streaming server fail");
-        return false;
+        if(ConfigStreamingServer() == false)
+        {
+            LOGE("Config Streaming server fail");
+            return false;
+        }
     }
     return true;
 }
@@ -76,7 +92,12 @@ bool VideoRecorder::Config(const VideoRecorderConfig& Config)
 bool VideoRecorder::ConfigStreamingServer()
 {
     StreamingServerConfig Config = {8554, "live", m_VideoQueue, m_AudioQueue};
-    if(m_StreamingServer.Config(Config) == false)
+    if(m_StreamingServer == nullptr)
+    {
+        LOGE("m_StreamingServer is nullptr");
+        return false;
+    }
+    if(m_StreamingServer->Config(Config) == false)
     {
         LOGE("Config Streaming server fail");
         return false;
@@ -195,25 +216,6 @@ void VideoRecorder::FlushAudioEncoder()
 void VideoRecorder::Stop()
 {
     m_IsRunning = false;
-}
-
-void PrintH264NALU(const AVPacket* Packet)
-{
-    static uint64_t PacketIndex = 0;
-    ++PacketIndex;
-
-    if (Packet == nullptr || Packet->data == nullptr || Packet->size <= 0)
-        return;
-
-    printf("[Packet #%lu] size=%d, first bytes:",
-           static_cast<unsigned long>(PacketIndex), Packet->size);
-
-    for (int i = 0; i < std::min(Packet->size, 16); ++i)
-        printf(" %02X", Packet->data[i]);
-
-    printf("\n");
-
-    // Phần phân tích NALU tiếp tục ở đây.
 }
 
 void VideoRecorder::ThreadCaptureVideo()
