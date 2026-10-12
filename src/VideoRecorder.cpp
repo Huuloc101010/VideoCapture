@@ -4,33 +4,73 @@
 #include "Utils.h"
 #include "Define.h"
 
-VideoRecorder::VideoRecorder()
+VideoRecorder::VideoRecorder(const MediaOutputType& Type) : m_Type(Type)
 {
     m_FlushSuccessCounter = 0;
+    m_VideoQueueForFile = std::make_shared<Queue<UniquePacketPtr>>();
+    m_AudioQueueForFile = std::make_shared<Queue<UniquePacketPtr>>();
+    m_VideoQueueForStreaming = std::make_shared<Queue<UniquePacketPtr>>();
+    m_AudioQueueForStreaming = std::make_shared<Queue<UniquePacketPtr>>();
+    if(Type & STREAMING)
+    {
+        m_StreamingServer = std::make_unique<StreamingServer>();
+    }
+    if(Type & FILE_MP4)
+    {
+        m_Muxer = std::make_unique<Muxer>();
+    }
 }
 
 void VideoRecorder::Record()
 {
-    m_IsRunning = true;
-    if(m_Muxer.WriteHeader() == false)
+    if(m_Type & STREAMING)
     {
-        LOGE("Write header fail");
-        return;
+        if(m_StreamingServer == nullptr)
+        {
+            LOGE("m_StreamingServer is nullptr");
+            return;
+        }
+        // Start Stream server
+        m_StreamingServer->Start();
+    }
+    m_IsRunning = true;
+    if(m_Type & FILE_MP4)
+    {
+        if(m_Muxer->WriteHeader() == false)
+        {
+            LOGE("Write header fail");
+            return;
+        }
     }
     Clock Clock;
     std::jthread CheckTime(&VideoRecorder::CheckTimeRecorded, this);
     std::jthread ThreadVideo(&VideoRecorder::ThreadCaptureVideo, this);
     std::jthread TheadAudio(&VideoRecorder::ThreadCaptureAudio, this);
-    std::jthread ThreadWriteFrame(&VideoRecorder::ThreadWriteFrame, this);
+    if(m_Type & FILE_MP4)
+    {
+        m_ThreadWriteFrame = std::jthread(&VideoRecorder::ThreadWriteFrame, this);
+    }
+    
     ThreadVideo.join();
     TheadAudio.join();
     // Flush video and audio encoder
     FlushVideoEncoder();
     FlushAudioEncoder();
-    ThreadWriteFrame.join();
-
+    if(m_ThreadWriteFrame.joinable())
+    {
+        m_ThreadWriteFrame.join();
+    }
+    CheckTime.join();
     LOGI("Captured in {} seconds", Clock.GetTimeSeconds());
-    m_Muxer.WriteTrailer();
+    if(m_Type & FILE_MP4)
+    {
+        if(m_Muxer == nullptr)
+        {
+            LOGE("m_Muxer is nullptr");
+            return;
+        }
+        m_Muxer->WriteTrailer();
+    }
     m_IsRunning = false;
 }
 
@@ -54,10 +94,42 @@ bool VideoRecorder::Config(const VideoRecorderConfig& Config)
         LOGE("Config Audio fail");
         return false;
     }
-
-    if(m_Muxer.Config({width, height, m_VideoEncoder.GetCodecContext().get(), m_AudioEncoder.GetCodecContext().get(), m_Config.TailVideo, m_Config.PathVideoOutput}) == false)
+    if(m_Type & FILE_MP4)
     {
-        LOGE("Config muxer fail");
+        if(m_Muxer == nullptr)
+        {
+            LOGE("m_Muxer is nullptr");
+            return false;
+        }
+        if(m_Muxer->Config({width, height, m_VideoEncoder.GetCodecContext().get(), m_AudioEncoder.GetCodecContext().get(), m_Config.TailVideo, m_Config.PathVideoOutput}) == false)
+        {
+            LOGE("Config muxer fail");
+            return false;
+        }
+    }
+
+    if(m_Type & STREAMING)
+    {
+        if(ConfigStreamingServer() == false)
+        {
+            LOGE("Config Streaming server fail");
+            return false;
+        }
+    }
+    return true;
+}
+
+bool VideoRecorder::ConfigStreamingServer()
+{
+    StreamingServerConfig Config = {8554, "live", m_VideoQueueForStreaming, m_AudioQueueForStreaming};
+    if(m_StreamingServer == nullptr)
+    {
+        LOGE("m_StreamingServer is nullptr");
+        return false;
+    }
+    if(m_StreamingServer->Config(Config) == false)
+    {
+        LOGE("Config Streaming server fail");
         return false;
     }
     return true;
@@ -142,13 +214,14 @@ void VideoRecorder::FlushVideoEncoder()
     std::vector<UniquePacketPtr> VectorEncoder = m_VideoEncoder.Encode(nullptr);
     for (auto& Packet : VectorEncoder)
     {
-        if (Packet == nullptr)
+        if((Packet == nullptr))
         {
             LOGE("Packet is nullptr");
             continue;
         }
-        Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetVideoTimeBase());
-        m_VideoQueue.Push(std::move(Packet));
+        UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(std::move(Packet));
+        m_VideoQueueForFile->Push(std::move(Packet));
+        m_VideoQueueForStreaming->Push(std::move(NewPacket));
     }
     m_FlushSuccessCounter ++;
     LOGI("Flush video encoder success");
@@ -159,13 +232,12 @@ void VideoRecorder::FlushAudioEncoder()
     std::vector<UniquePacketPtr> VectorEncoder = m_AudioEncoder.Encode(nullptr);
     for (auto& Packet : VectorEncoder)
     {
-        if(Packet == nullptr)
+        if((Packet == nullptr))
         {
             LOGE("Packet is nullptr");
             continue;
         }
-        Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetVideoTimeBase());
-        m_AudioQueue.Push(std::move(Packet));
+        m_AudioQueueForFile->Push(std::move(Packet));
     }
     m_FlushSuccessCounter ++;
     LOGI("Flush audio encoder success");
@@ -174,6 +246,26 @@ void VideoRecorder::FlushAudioEncoder()
 void VideoRecorder::Stop()
 {
     m_IsRunning = false;
+    if(m_StreamingServer != nullptr)
+    {
+        m_StreamingServer->Stop();
+    }
+    if(m_VideoQueueForFile)
+    {
+        m_VideoQueueForFile->Stop();
+    }
+    if(m_AudioQueueForFile)
+    {
+        m_AudioQueueForFile->Stop();
+    }
+    if(m_VideoQueueForStreaming)
+    {
+        m_VideoQueueForStreaming->Stop();
+    }
+    if(m_AudioQueueForStreaming)
+    {
+        m_AudioQueueForStreaming->Stop();
+    }
 }
 
 void VideoRecorder::ThreadCaptureVideo()
@@ -189,7 +281,7 @@ void VideoRecorder::ThreadCaptureVideo()
         }
         // Recalculate timestamp follow system clock
         Packet->pts = Utils::GetInstance().GetTimeStamp(m_V4l2Capture.GetTimeBase(), Clock.GetTimeSeconds());
-        LOGW("Thread video: {}", Clock.GetTimeSeconds());
+        //LOGW("Thread video: {}", Clock.GetTimeSeconds());
         UniqueFramePtr frame = m_ColorConvert.ConvertPacketToFrame(std::move(Packet));
         if(frame == nullptr)
         {
@@ -208,16 +300,19 @@ void VideoRecorder::ThreadCaptureVideo()
 
         for(auto& Packet : VectorEncoder)
         {
-            if (Packet == nullptr)
+            if((Packet == nullptr))
             {
-                LOGE("Packet is nullptr");
+                LOGE("Packet or m_Muxer is nullptr");
                 continue;
             }
-            Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer.GetVideoTimeBase());
-            m_VideoQueue.Push(std::move(Packet));
+            UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(Packet);
+            m_VideoQueueForFile->Push(std::move(Packet));
+            m_VideoQueueForStreaming->Push(std::move(NewPacket));
         }
     }
 }
+
+
 
 void VideoRecorder::ThreadCaptureAudio()
 {
@@ -231,7 +326,7 @@ void VideoRecorder::ThreadCaptureAudio()
             continue;
         }
         Packet->pts = Utils::GetInstance().GetTimeStamp(m_AlsaCapture.GetTimeBase(), Clock.GetTimeSeconds());
-        LOGE("Thread audio: {}", Clock.GetTimeSeconds());
+        //LOGE("Thread audio: {}", Clock.GetTimeSeconds());
         UniqueFramePtr FrameS16P = m_AudioConvert.ConvertPacketToFrame(std::move(Packet));
         if(FrameS16P == nullptr)
         {
@@ -253,8 +348,9 @@ void VideoRecorder::ThreadCaptureAudio()
             std::vector<UniquePacketPtr> VectorPacket = m_AudioEncoder.Encode(std::move(Element));
             for(auto& SubElement : VectorPacket)
             {
-                Utils::GetInstance().ConvertTimestamp(SubElement, m_AudioEncoder.GetTimeBase(), m_Muxer.GetAudioTimeBase());
-                m_AudioQueue.Push(std::move(SubElement));
+                UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(SubElement);
+                m_AudioQueueForFile->Push(std::move(SubElement));
+                m_AudioQueueForStreaming->Push(std::move(NewPacket));
             }
         }
     }
@@ -268,13 +364,15 @@ void VideoRecorder::ThreadWriteFrame()
     {
         int64_t VideoPts = INT64_MAX;
         int64_t AudioPts = INT64_MAX;
-        if(m_VideoQueue.Size() && (VideoPacket == nullptr))
+        if(m_VideoQueueForFile->Size() && (VideoPacket == nullptr))
         {
-            VideoPacket = m_VideoQueue.Pop();
+            Utils::GetInstance().ConvertTimestamp(VideoPacket, m_VideoEncoder.GetTimeBase(), m_Muxer->GetVideoTimeBase());
+            VideoPacket = m_VideoQueueForFile->Pop();
         }
-        if(m_AudioQueue.Size() && (AudioPacket == nullptr))
+        if(m_AudioQueueForFile->Size() && (AudioPacket == nullptr))
         {
-            AudioPacket = m_AudioQueue.Pop();
+            Utils::GetInstance().ConvertTimestamp(AudioPacket, m_AudioEncoder.GetTimeBase(), m_Muxer->GetAudioTimeBase());
+            AudioPacket = m_AudioQueueForFile->Pop();
         }
         if((VideoPacket == nullptr) && (AudioPacket == nullptr))
         {
@@ -289,15 +387,20 @@ void VideoRecorder::ThreadWriteFrame()
         {
             AudioPts = AudioPacket->pts;
         }
+        if(m_Muxer == nullptr)
+        {
+            LOGE("m_Muxer is nullptr");
+            return;
+        }
         if(VideoPts < AudioPts)
         {
             // Write video
-            m_Muxer.WriteVideoPacket(std::move(VideoPacket));
+            m_Muxer->WriteVideoPacket(std::move(VideoPacket));
         }
         else
         {
             // Write audio
-            m_Muxer.WriteAudioPacket(std::move(AudioPacket));
+            m_Muxer->WriteAudioPacket(std::move(AudioPacket));
         }
     }
 }

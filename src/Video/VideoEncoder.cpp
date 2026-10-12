@@ -23,7 +23,7 @@ bool VideoEncoder::ConfigEncoder(const EncoderConfig& Config)
         LOGE("m_CodecContext = nullptr");
         return false;
     }
-    m_CodecContext->bit_rate = 400000;
+    m_CodecContext->bit_rate = 200000;
     m_CodecContext->width = Config.Width;
     m_CodecContext->height = Config.Height;
     /* frames per second */
@@ -32,10 +32,15 @@ bool VideoEncoder::ConfigEncoder(const EncoderConfig& Config)
     m_CodecContext->gop_size = 10;
     m_CodecContext->max_b_frames = 0;
     m_CodecContext->pix_fmt = AV_PIX_FMT_YUV420P;
+    m_CodecContext->flags &= ~AV_CODEC_FLAG_GLOBAL_HEADER;
+
     if(m_Codec->id == AV_CODEC_ID_H264)
     {
         av_opt_set(m_CodecContext->priv_data, "preset", "slow", 0);
         av_opt_set(m_CodecContext->priv_data, "tune", "zerolatency", 0);
+        // Forced libx264 Push SPS/PPS before each Keyframe
+        av_opt_set(m_CodecContext->priv_data, "aud", "1", 0);
+        av_opt_set(m_CodecContext->priv_data, "x264opts", "keyint=30:min-keyint=30:scenecut=0:repeat-headers=1", 0);
     }
     if(avcodec_open2(m_CodecContext.get(), m_Codec, NULL) != 0)
     {
