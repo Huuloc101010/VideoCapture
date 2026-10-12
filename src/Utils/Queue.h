@@ -10,7 +10,7 @@ template<typename T>
 class Queue
 {
 public:
-    Queue(int LimitSize = 10)
+    Queue(int LimitSize = 10000)
     {
         m_LimitSize = LimitSize;
         m_IsStop = false;

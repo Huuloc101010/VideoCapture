@@ -58,8 +58,10 @@ private:
     const MediaOutputType                   m_Type;
     std::unique_ptr<Muxer>                  m_Muxer;
     std::unique_ptr<StreamingServer>        m_StreamingServer;
-    std::shared_ptr<Queue<UniquePacketPtr>> m_VideoQueue;
-    std::shared_ptr<Queue<UniquePacketPtr>> m_AudioQueue;
+    std::shared_ptr<Queue<UniquePacketPtr>> m_VideoQueueForFile;
+    std::shared_ptr<Queue<UniquePacketPtr>> m_AudioQueueForFile;
+    std::shared_ptr<Queue<UniquePacketPtr>> m_VideoQueueForStreaming;
+    std::shared_ptr<Queue<UniquePacketPtr>> m_AudioQueueForStreaming;
 };
 
 #endif // VIDEO_RECORDER_H

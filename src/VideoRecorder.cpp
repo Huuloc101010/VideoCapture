@@ -7,8 +7,10 @@
 VideoRecorder::VideoRecorder(const MediaOutputType& Type) : m_Type(Type)
 {
     m_FlushSuccessCounter = 0;
-    m_VideoQueue = std::make_shared<Queue<UniquePacketPtr>>();
-    m_AudioQueue = std::make_shared<Queue<UniquePacketPtr>>();
+    m_VideoQueueForFile = std::make_shared<Queue<UniquePacketPtr>>();
+    m_AudioQueueForFile = std::make_shared<Queue<UniquePacketPtr>>();
+    m_VideoQueueForStreaming = std::make_shared<Queue<UniquePacketPtr>>();
+    m_AudioQueueForStreaming = std::make_shared<Queue<UniquePacketPtr>>();
     if(Type & STREAMING)
     {
         m_StreamingServer = std::make_unique<StreamingServer>();
@@ -119,7 +121,7 @@ bool VideoRecorder::Config(const VideoRecorderConfig& Config)
 
 bool VideoRecorder::ConfigStreamingServer()
 {
-    StreamingServerConfig Config = {8554, "live", m_VideoQueue, m_AudioQueue};
+    StreamingServerConfig Config = {8554, "live", m_VideoQueueForStreaming, m_AudioQueueForStreaming};
     if(m_StreamingServer == nullptr)
     {
         LOGE("m_StreamingServer is nullptr");
@@ -217,7 +219,9 @@ void VideoRecorder::FlushVideoEncoder()
             LOGE("Packet is nullptr");
             continue;
         }
-        m_VideoQueue->Push(std::move(Packet));
+        UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(std::move(Packet));
+        m_VideoQueueForFile->Push(std::move(Packet));
+        m_VideoQueueForStreaming->Push(std::move(NewPacket));
     }
     m_FlushSuccessCounter ++;
     LOGI("Flush video encoder success");
@@ -233,7 +237,7 @@ void VideoRecorder::FlushAudioEncoder()
             LOGE("Packet is nullptr");
             continue;
         }
-        m_AudioQueue->Push(std::move(Packet));
+        m_AudioQueueForFile->Push(std::move(Packet));
     }
     m_FlushSuccessCounter ++;
     LOGI("Flush audio encoder success");
@@ -246,13 +250,21 @@ void VideoRecorder::Stop()
     {
         m_StreamingServer->Stop();
     }
-    if(m_VideoQueue)
+    if(m_VideoQueueForFile)
     {
-        m_VideoQueue->Stop();
+        m_VideoQueueForFile->Stop();
     }
-    if(m_AudioQueue)
+    if(m_AudioQueueForFile)
     {
-        m_AudioQueue->Stop();
+        m_AudioQueueForFile->Stop();
+    }
+    if(m_VideoQueueForStreaming)
+    {
+        m_VideoQueueForStreaming->Stop();
+    }
+    if(m_AudioQueueForStreaming)
+    {
+        m_AudioQueueForStreaming->Stop();
     }
 }
 
@@ -293,7 +305,9 @@ void VideoRecorder::ThreadCaptureVideo()
                 LOGE("Packet or m_Muxer is nullptr");
                 continue;
             }
-            m_VideoQueue->Push(std::move(Packet));
+            UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(Packet);
+            m_VideoQueueForFile->Push(std::move(Packet));
+            m_VideoQueueForStreaming->Push(std::move(NewPacket));
         }
     }
 }
@@ -334,7 +348,9 @@ void VideoRecorder::ThreadCaptureAudio()
             std::vector<UniquePacketPtr> VectorPacket = m_AudioEncoder.Encode(std::move(Element));
             for(auto& SubElement : VectorPacket)
             {
-                m_AudioQueue->Push(std::move(SubElement));
+                UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(SubElement);
+                m_AudioQueueForFile->Push(std::move(SubElement));
+                m_AudioQueueForStreaming->Push(std::move(NewPacket));
             }
         }
     }
@@ -348,15 +364,15 @@ void VideoRecorder::ThreadWriteFrame()
     {
         int64_t VideoPts = INT64_MAX;
         int64_t AudioPts = INT64_MAX;
-        if(m_VideoQueue->Size() && (VideoPacket == nullptr))
+        if(m_VideoQueueForFile->Size() && (VideoPacket == nullptr))
         {
             Utils::GetInstance().ConvertTimestamp(VideoPacket, m_VideoEncoder.GetTimeBase(), m_Muxer->GetVideoTimeBase());
-            VideoPacket = m_VideoQueue->Pop();
+            VideoPacket = m_VideoQueueForFile->Pop();
         }
-        if(m_AudioQueue->Size() && (AudioPacket == nullptr))
+        if(m_AudioQueueForFile->Size() && (AudioPacket == nullptr))
         {
             Utils::GetInstance().ConvertTimestamp(AudioPacket, m_AudioEncoder.GetTimeBase(), m_Muxer->GetAudioTimeBase());
-            AudioPacket = m_AudioQueue->Pop();
+            AudioPacket = m_AudioQueueForFile->Pop();
         }
         if((VideoPacket == nullptr) && (AudioPacket == nullptr))
         {

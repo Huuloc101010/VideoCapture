@@ -27,7 +27,8 @@ void SignalHandler(int Signal)
 
 int main()
 {
-    VideoRecorder Recorder(FILE_MP4);
+    //VideoRecorder Recorder(STREAMING);
+    VideoRecorder Recorder(STREAMING_AND_FILE);
     Callback = [&]()
     {
         Recorder.Stop();
@@ -41,7 +42,7 @@ int main()
     RecorderConfig.PathAudioDevice = "hw:0,0";
     RecorderConfig.AudioSampleRate = "48000";
     RecorderConfig.AudioSampleChannel = "2";
-    RecorderConfig.Time = {0,0,10};
+    RecorderConfig.Time = {0,0,20};
     
     bool Retval = Recorder.Config(RecorderConfig);
     if(Retval == false)

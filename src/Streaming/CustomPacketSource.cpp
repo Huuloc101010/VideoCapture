@@ -2,9 +2,9 @@
 
 CustomPacketSource::CustomPacketSource(UsageEnvironment& env, std::shared_ptr<Queue<UniquePacketPtr>> queue)
     : FramedSource(env), m_Queue(queue)
-    {
+{
 
-    }
+}
 
 CustomPacketSource* CustomPacketSource::createNew(UsageEnvironment& env, std::shared_ptr<Queue<UniquePacketPtr>> queue)
 {
