@@ -6,7 +6,8 @@
 #include "Queue.h"
 #include "Define.h"
 
-class CustomPacketSource : public FramedSource {
+class CustomPacketSource : public FramedSource
+{
 public:
     static CustomPacketSource* createNew(UsageEnvironment& env, std::shared_ptr<Queue<UniquePacketPtr>> queue);
 protected:

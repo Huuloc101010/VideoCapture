@@ -10,7 +10,7 @@ template<typename T>
 class Queue
 {
 public:
-    Queue(int LimitSize = 10000)
+    Queue(int LimitSize = 50)
     {
         m_LimitSize = LimitSize;
         m_IsStop = false;
@@ -78,6 +78,11 @@ public:
     {
         std::unique_lock<std::mutex> Lock(m_Mutex);
         return m_Data.size();
+    }
+
+    bool IsFull()
+    {
+        return Size() == (m_LimitSize - 1);
     }
 
 private:

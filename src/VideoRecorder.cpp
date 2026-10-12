@@ -220,6 +220,16 @@ void VideoRecorder::FlushVideoEncoder()
             continue;
         }
         UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(std::move(Packet));
+        if(m_VideoQueueForFile->IsFull())
+        {
+            LOGW("Pop one element");
+            m_VideoQueueForFile->Pop();
+        }
+        if(m_VideoQueueForStreaming->IsFull())
+        {
+            LOGW("Pop one element");
+            m_VideoQueueForStreaming->Pop();
+        }
         m_VideoQueueForFile->Push(std::move(Packet));
         m_VideoQueueForStreaming->Push(std::move(NewPacket));
     }
@@ -237,7 +247,19 @@ void VideoRecorder::FlushAudioEncoder()
             LOGE("Packet is nullptr");
             continue;
         }
+        UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(Packet);
+        if(m_AudioQueueForFile->IsFull())
+        {
+            LOGW("Pop one element");
+            m_AudioQueueForFile->Pop();
+        }
+        if(m_AudioQueueForStreaming->IsFull())
+        {
+            LOGW("Pop one element");
+            m_AudioQueueForStreaming->Pop();
+        }
         m_AudioQueueForFile->Push(std::move(Packet));
+        m_AudioQueueForStreaming->Push(std::move(NewPacket));
     }
     m_FlushSuccessCounter ++;
     LOGI("Flush audio encoder success");
@@ -306,6 +328,16 @@ void VideoRecorder::ThreadCaptureVideo()
                 continue;
             }
             UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(Packet);
+            if(m_VideoQueueForFile->IsFull())
+            {
+                LOGW("Pop one element");
+                m_VideoQueueForFile->Pop();
+            }
+            if(m_VideoQueueForStreaming->IsFull())
+            {
+                LOGW("Pop one element");
+                m_VideoQueueForStreaming->Pop();
+            }
             m_VideoQueueForFile->Push(std::move(Packet));
             m_VideoQueueForStreaming->Push(std::move(NewPacket));
         }
@@ -349,6 +381,16 @@ void VideoRecorder::ThreadCaptureAudio()
             for(auto& SubElement : VectorPacket)
             {
                 UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(SubElement);
+                if(m_AudioQueueForFile->IsFull())
+                {
+                    LOGW("Pop one element");
+                    m_AudioQueueForFile->Pop();
+                }
+                if(m_AudioQueueForStreaming->IsFull())
+                {
+                    LOGW("Pop one element");
+                    m_AudioQueueForStreaming->Pop();
+                }
                 m_AudioQueueForFile->Push(std::move(SubElement));
                 m_AudioQueueForStreaming->Push(std::move(NewPacket));
             }
