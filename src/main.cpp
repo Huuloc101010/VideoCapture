@@ -27,21 +27,21 @@ void SignalHandler(int Signal)
 
 int main()
 {
-    VideoRecorder Recorder;
+    VideoRecorder Recorder(FILE_MP4);
     Callback = [&]()
     {
         Recorder.Stop();
     };
     VideoRecorderConfig RecorderConfig;
     RecorderConfig.PathDevice = "/dev/video0";
-    RecorderConfig.PathVideoOutput = "rtsp://127.0.0.1:8554/live";
-    RecorderConfig.TailVideo = "rtsp";
+    RecorderConfig.PathVideoOutput = "video.mp4";
+    RecorderConfig.TailVideo = "mp4";
     RecorderConfig.Width = 640;
     RecorderConfig.Height = 480;
     RecorderConfig.PathAudioDevice = "hw:0,0";
     RecorderConfig.AudioSampleRate = "48000";
     RecorderConfig.AudioSampleChannel = "2";
-    RecorderConfig.Time = {1,0,10};
+    RecorderConfig.Time = {0,0,5};
     
     bool Retval = Recorder.Config(RecorderConfig);
     if(Retval == false)

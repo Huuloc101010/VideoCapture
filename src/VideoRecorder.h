@@ -47,7 +47,6 @@ private:
     V4l2Capture          m_V4l2Capture;
     VideoEncoder         m_VideoEncoder;
     AudioEncoder         m_AudioEncoder;
-    //Muxer                m_Muxer;
     ColorConvert         m_ColorConvert;
     VideoRecorderConfig  m_Config;
     std::atomic<uint64_t> m_TimeRecord;
@@ -55,7 +54,9 @@ private:
     std::atomic<int>      m_FlushSuccessCounter;
     AlsaCapture           m_AlsaCapture;
     AudioConvert          m_AudioConvert;
+    std::jthread          m_ThreadWriteFrame;
     const MediaOutputType                   m_Type;
+    std::unique_ptr<Muxer>                  m_Muxer;
     std::unique_ptr<StreamingServer>        m_StreamingServer;
     std::shared_ptr<Queue<UniquePacketPtr>> m_VideoQueue;
     std::shared_ptr<Queue<UniquePacketPtr>> m_AudioQueue;
