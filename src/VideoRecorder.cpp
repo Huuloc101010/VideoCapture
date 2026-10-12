@@ -212,12 +212,11 @@ void VideoRecorder::FlushVideoEncoder()
     std::vector<UniquePacketPtr> VectorEncoder = m_VideoEncoder.Encode(nullptr);
     for (auto& Packet : VectorEncoder)
     {
-        if((Packet == nullptr) || (m_Muxer == nullptr))
+        if((Packet == nullptr))
         {
-            LOGE("Packet or m_Muxer is nullptr");
+            LOGE("Packet is nullptr");
             continue;
         }
-        Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer->GetVideoTimeBase());
         m_VideoQueue->Push(std::move(Packet));
     }
     m_FlushSuccessCounter ++;
@@ -229,12 +228,11 @@ void VideoRecorder::FlushAudioEncoder()
     std::vector<UniquePacketPtr> VectorEncoder = m_AudioEncoder.Encode(nullptr);
     for (auto& Packet : VectorEncoder)
     {
-        if((Packet == nullptr) || (m_Muxer == nullptr))
+        if((Packet == nullptr))
         {
-            LOGE("Packet or m_Muxer is nullptr");
+            LOGE("Packet is nullptr");
             continue;
         }
-        Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer->GetVideoTimeBase());
         m_AudioQueue->Push(std::move(Packet));
     }
     m_FlushSuccessCounter ++;
@@ -278,12 +276,11 @@ void VideoRecorder::ThreadCaptureVideo()
 
         for(auto& Packet : VectorEncoder)
         {
-            if((Packet == nullptr) || (m_Muxer == nullptr))
+            if((Packet == nullptr))
             {
                 LOGE("Packet or m_Muxer is nullptr");
                 continue;
             }
-            Utils::GetInstance().ConvertTimestamp(Packet, m_VideoEncoder.GetTimeBase(), m_Muxer->GetVideoTimeBase());
             m_VideoQueue->Push(std::move(Packet));
         }
     }
@@ -325,12 +322,6 @@ void VideoRecorder::ThreadCaptureAudio()
             std::vector<UniquePacketPtr> VectorPacket = m_AudioEncoder.Encode(std::move(Element));
             for(auto& SubElement : VectorPacket)
             {
-                if(m_Muxer == nullptr)
-                {
-                    LOGE("m_Muxer is nullptr");
-                    return;
-                }
-                Utils::GetInstance().ConvertTimestamp(SubElement, m_AudioEncoder.GetTimeBase(), m_Muxer->GetAudioTimeBase());
                 m_AudioQueue->Push(std::move(SubElement));
             }
         }
@@ -347,10 +338,12 @@ void VideoRecorder::ThreadWriteFrame()
         int64_t AudioPts = INT64_MAX;
         if(m_VideoQueue->Size() && (VideoPacket == nullptr))
         {
+            Utils::GetInstance().ConvertTimestamp(VideoPacket, m_VideoEncoder.GetTimeBase(), m_Muxer->GetVideoTimeBase());
             VideoPacket = m_VideoQueue->Pop();
         }
         if(m_AudioQueue->Size() && (AudioPacket == nullptr))
         {
+            Utils::GetInstance().ConvertTimestamp(AudioPacket, m_AudioEncoder.GetTimeBase(), m_Muxer->GetAudioTimeBase());
             AudioPacket = m_AudioQueue->Pop();
         }
         if((VideoPacket == nullptr) && (AudioPacket == nullptr))

@@ -41,7 +41,7 @@ int main()
     RecorderConfig.PathAudioDevice = "hw:0,0";
     RecorderConfig.AudioSampleRate = "48000";
     RecorderConfig.AudioSampleChannel = "2";
-    RecorderConfig.Time = {0,0,5};
+    RecorderConfig.Time = {0,0,10};
     
     bool Retval = Recorder.Config(RecorderConfig);
     if(Retval == false)
