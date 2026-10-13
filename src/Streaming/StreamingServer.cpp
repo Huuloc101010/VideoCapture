@@ -10,7 +10,7 @@ bool StreamingServer::Config(const StreamingServerConfig& Config)
     m_Config = Config;
     m_VideoQueue = Config.VideoQueue;
     m_AudioQueue = Config.AudioQueue;
-    m_RtspServer.Config({m_VideoQueue, m_AudioQueue});
+    m_RtspServer.Config({m_VideoQueue, m_AudioQueue, Config.VideoTimeBase, Config.AudioTimeBase});
     return true;
 }
 

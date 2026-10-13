@@ -121,7 +121,7 @@ bool VideoRecorder::Config(const VideoRecorderConfig& Config)
 
 bool VideoRecorder::ConfigStreamingServer()
 {
-    StreamingServerConfig Config = {8554, "live", m_VideoQueueForStreaming, m_AudioQueueForStreaming};
+    StreamingServerConfig Config = {8554, "live", m_VideoQueueForStreaming, m_AudioQueueForStreaming, m_VideoEncoder.GetTimeBase(), m_AudioEncoder.GetTimeBase()};
     if(m_StreamingServer == nullptr)
     {
         LOGE("m_StreamingServer is nullptr");

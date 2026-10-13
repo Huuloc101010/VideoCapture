@@ -28,6 +28,7 @@ private:
     std::shared_ptr<Queue<UniquePacketPtr>> m_audioQueue; 
     std::jthread m_thread;
     std::atomic<char> m_running{0};
+    Live555RtspConfig m_Config;
 };
 
 #endif // LIVE555_RTSP_SERVER

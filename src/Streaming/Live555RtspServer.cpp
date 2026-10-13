@@ -13,6 +13,7 @@ void Live555RtspServer::Config(const Live555RtspConfig& Config)
 {
     m_videoQueue = Config.VideoQueue;
     m_audioQueue = Config.AudioQueue;
+    m_Config = Config;
 }
 
 bool Live555RtspServer::Start(uint16_t port, const std::string& streamName)
@@ -38,10 +39,10 @@ bool Live555RtspServer::Start(uint16_t port, const std::string& streamName)
         ServerMediaSession* sms = ServerMediaSession::createNew(*env, streamName.c_str(), "Live Stream", "FFmpeg C++ Stream");
 
         // Attach H.264 Video Track
-        sms->addSubsession(H264LiveSubsession::createNew(*env, m_videoQueue));
+        sms->addSubsession(H264LiveSubsession::createNew(*env, m_videoQueue, m_Config.VideoTimeBase));
 
         // Attach AAC Audio Track (48kHz, 2 Channels)
-        sms->addSubsession(AACLiveSubsession::createNew(*env, m_audioQueue, 48000, 2));
+        sms->addSubsession(AACLiveSubsession::createNew(*env, m_audioQueue, 48000, 2, m_Config.AudioTimeBase));
 
         rtspServer->addServerMediaSession(sms);
         char* Prefix = rtspServer->rtspURLPrefix();

@@ -1,14 +1,16 @@
 #include "CustomPacketSource.h"
+#include "Define.h"
+#include "Utils.h"
 
-CustomPacketSource::CustomPacketSource(UsageEnvironment& env, std::shared_ptr<Queue<UniquePacketPtr>> queue)
+CustomPacketSource::CustomPacketSource(UsageEnvironment& env, std::shared_ptr<Queue<UniquePacketPtr>> queue, const AVRational& Timebase)
     : FramedSource(env), m_Queue(queue)
 {
-
+    m_Timebase = Timebase;
 }
 
-CustomPacketSource* CustomPacketSource::createNew(UsageEnvironment& env, std::shared_ptr<Queue<UniquePacketPtr>> queue)
+CustomPacketSource* CustomPacketSource::createNew(UsageEnvironment& env, std::shared_ptr<Queue<UniquePacketPtr>> queue, const AVRational& Timebase)
 {
-    return new CustomPacketSource(env, queue);
+    return new CustomPacketSource(env, queue, Timebase);
 }
 
 void CustomPacketSource::doGetNextFrame()
@@ -64,8 +66,9 @@ void CustomPacketSource::DeliverFrame(const UniquePacketPtr& Packet)
 
     // update timestamp for RTP Packet
     timeval tv;
-    tv.tv_sec = static_cast<long>(Packet->pts);
-    tv.tv_usec = static_cast<long>((Packet->pts - tv.tv_sec) * 1e6);
+    double CurrentTimestamp = Utils::GetInstance().GetTimeStamp(m_Timebase, Packet->pts);
+    tv.tv_sec = static_cast<long>(CurrentTimestamp);
+    tv.tv_usec = static_cast<long>((CurrentTimestamp - (double)tv.tv_sec) * 1e6);
     fPresentationTime = tv;
 
     // Notify for Live555 buffer ready

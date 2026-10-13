@@ -157,12 +157,16 @@ struct StreamingServerConfig
     std::string Path;
     std::shared_ptr<Queue<UniquePacketPtr>> VideoQueue;
     std::shared_ptr<Queue<UniquePacketPtr>> AudioQueue;
+    AVRational VideoTimeBase;
+    AVRational AudioTimeBase;
 };
 
 struct Live555RtspConfig
 {
     std::shared_ptr<Queue<UniquePacketPtr>> VideoQueue;
     std::shared_ptr<Queue<UniquePacketPtr>> AudioQueue;
+    AVRational VideoTimeBase;
+    AVRational AudioTimeBase;
 };
 
 struct AudioConvertConfig
