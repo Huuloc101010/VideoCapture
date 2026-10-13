@@ -219,19 +219,25 @@ void VideoRecorder::FlushVideoEncoder()
             LOGE("Packet is nullptr");
             continue;
         }
-        UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(std::move(Packet));
-        if(m_VideoQueueForFile->IsFull())
+        if(m_Type & STREAMING)
         {
-            LOGW("Pop one element");
-            m_VideoQueueForFile->Pop();
+            UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(Packet);
+            if(m_VideoQueueForStreaming->IsFull())
+            {
+                LOGW("Pop one element");
+                m_VideoQueueForStreaming->Pop();
+            }
+            m_VideoQueueForStreaming->Push(std::move(NewPacket));
         }
-        if(m_VideoQueueForStreaming->IsFull())
+        if(m_Type & FILE_MP4)
         {
-            LOGW("Pop one element");
-            m_VideoQueueForStreaming->Pop();
+            if(m_VideoQueueForFile->IsFull())
+            {
+                LOGW("Pop one element");
+                m_VideoQueueForFile->Pop();
+            }
+            m_VideoQueueForFile->Push(std::move(Packet));
         }
-        m_VideoQueueForFile->Push(std::move(Packet));
-        m_VideoQueueForStreaming->Push(std::move(NewPacket));
     }
     m_FlushSuccessCounter ++;
     LOGI("Flush video encoder success");
@@ -247,19 +253,30 @@ void VideoRecorder::FlushAudioEncoder()
             LOGE("Packet is nullptr");
             continue;
         }
-        UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(Packet);
-        if(m_AudioQueueForFile->IsFull())
+        if((Packet == nullptr))
         {
-            LOGW("Pop one element");
-            m_AudioQueueForFile->Pop();
+            LOGE("Packet is nullptr");
+            continue;
         }
-        if(m_AudioQueueForStreaming->IsFull())
+        if(m_Type & STREAMING)
         {
-            LOGW("Pop one element");
-            m_AudioQueueForStreaming->Pop();
+            UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(Packet);
+            if(m_AudioQueueForStreaming->IsFull())
+            {
+                LOGW("Pop one element");
+                m_AudioQueueForStreaming->Pop();
+            }
+            m_AudioQueueForStreaming->Push(std::move(NewPacket));
         }
-        m_AudioQueueForFile->Push(std::move(Packet));
-        m_AudioQueueForStreaming->Push(std::move(NewPacket));
+        if(m_Type & FILE_MP4)
+        {
+            if(m_AudioQueueForFile->IsFull())
+            {
+                LOGW("Pop one element");
+                m_AudioQueueForFile->Pop();
+            }
+            m_AudioQueueForFile->Push(std::move(Packet));
+        }
     }
     m_FlushSuccessCounter ++;
     LOGI("Flush audio encoder success");
@@ -303,7 +320,7 @@ void VideoRecorder::ThreadCaptureVideo()
         }
         // Recalculate timestamp follow system clock
         Packet->pts = Utils::GetInstance().GetTimeStamp(m_V4l2Capture.GetTimeBase(), Clock.GetTimeSeconds());
-        //LOGW("Thread video: {}", Clock.GetTimeSeconds());
+        LOGW("Thread video: {}", Clock.GetTimeSeconds());
         UniqueFramePtr frame = m_ColorConvert.ConvertPacketToFrame(std::move(Packet));
         if(frame == nullptr)
         {
@@ -327,19 +344,30 @@ void VideoRecorder::ThreadCaptureVideo()
                 LOGE("Packet or m_Muxer is nullptr");
                 continue;
             }
-            UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(Packet);
-            if(m_VideoQueueForFile->IsFull())
+            if((Packet == nullptr))
             {
-                LOGW("Pop one element");
-                m_VideoQueueForFile->Pop();
+                LOGE("Packet is nullptr");
+                continue;
             }
-            if(m_VideoQueueForStreaming->IsFull())
+            if(m_Type & STREAMING)
             {
-                LOGW("Pop one element");
-                m_VideoQueueForStreaming->Pop();
+                UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(Packet);
+                if(m_VideoQueueForStreaming->IsFull())
+                {
+                    LOGW("Pop one element");
+                    m_VideoQueueForStreaming->Pop();
+                }
+                m_VideoQueueForStreaming->Push(std::move(NewPacket));
             }
-            m_VideoQueueForFile->Push(std::move(Packet));
-            m_VideoQueueForStreaming->Push(std::move(NewPacket));
+            if(m_Type & FILE_MP4)
+            {
+                if(m_VideoQueueForFile->IsFull())
+                {
+                    LOGW("Pop one element");
+                    m_VideoQueueForFile->Pop();
+                }
+                m_VideoQueueForFile->Push(std::move(Packet));
+            }
         }
     }
 }
@@ -358,7 +386,7 @@ void VideoRecorder::ThreadCaptureAudio()
             continue;
         }
         Packet->pts = Utils::GetInstance().GetTimeStamp(m_AlsaCapture.GetTimeBase(), Clock.GetTimeSeconds());
-        //LOGE("Thread audio: {}", Clock.GetTimeSeconds());
+        LOGE("Thread audio: {}", Clock.GetTimeSeconds());
         UniqueFramePtr FrameS16P = m_AudioConvert.ConvertPacketToFrame(std::move(Packet));
         if(FrameS16P == nullptr)
         {
@@ -380,19 +408,25 @@ void VideoRecorder::ThreadCaptureAudio()
             std::vector<UniquePacketPtr> VectorPacket = m_AudioEncoder.Encode(std::move(Element));
             for(auto& SubElement : VectorPacket)
             {
-                UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(SubElement);
-                if(m_AudioQueueForFile->IsFull())
+                if(m_Type & STREAMING)
                 {
-                    LOGW("Pop one element");
-                    m_AudioQueueForFile->Pop();
+                    UniquePacketPtr NewPacket = Utils::GetInstance().DuplicatePacket(SubElement);
+                    if(m_AudioQueueForStreaming->IsFull())
+                    {
+                        LOGW("Pop one element");
+                        m_AudioQueueForStreaming->Pop();
+                    }
+                    m_AudioQueueForStreaming->Push(std::move(NewPacket));
                 }
-                if(m_AudioQueueForStreaming->IsFull())
+                if(m_Type & FILE_MP4)
                 {
-                    LOGW("Pop one element");
-                    m_AudioQueueForStreaming->Pop();
+                    if(m_AudioQueueForFile->IsFull())
+                    {
+                        LOGW("Pop one element");
+                        m_AudioQueueForFile->Pop();
+                    }
+                    m_AudioQueueForFile->Push(std::move(SubElement));
                 }
-                m_AudioQueueForFile->Push(std::move(SubElement));
-                m_AudioQueueForStreaming->Push(std::move(NewPacket));
             }
         }
     }
